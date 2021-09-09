@@ -2,18 +2,29 @@ import fetch from "node-fetch";
 import fs from "fs-extra";
 
 import { File, User } from "./interfaces";
-import { getAvatarFilePath, getChannelUploadFilePath, token } from "./config";
+import { getAvatarFilePath, getChannelUploadFilePath, config } from "./config";
 import { getChannels, getMessages, getUsers } from "./load-data";
+import path from "path";
 
-async function downloadURL(url: string, filePath: string) {
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+async function downloadURL(
+  url: string,
+  filePath: string,
+  authorize: boolean = true
+) {
+  const { token } = config;
+  const headers: HeadersInit = authorize
+    ? {
+        Authorization: `Bearer ${token}`,
+      }
+    : {};
 
-  const buffer = await response.buffer();
-  fs.outputFileSync(filePath, buffer);
+  try {
+    const response = await fetch(url, { headers });
+    const buffer = await response.buffer();
+    fs.outputFileSync(filePath, buffer);
+  } catch (error) {
+    console.warn(`Failed to download file ${url}`, error);
+  }
 }
 
 async function downloadFile(
@@ -73,8 +84,21 @@ export async function downloadAvatarForUser(user?: User | null) {
   }
 
   try {
-    downloadURL(profile.image_512, getAvatarFilePath(user.id!));
+    const filePath = getAvatarFilePath(
+      user.id!,
+      path.extname(profile.image_512)
+    );
+    downloadURL(profile.image_512, filePath, false);
   } catch (error) {
     console.warn(`Failed to download avatar for user ${user.id!}`, error);
+  }
+}
+
+if (require.main?.filename === __filename) {
+  const lastArg = process.argv[process.argv.length - 1];
+
+  if (lastArg === "avatars") {
+    console.log(`Downloading avatars`);
+    downloadAvatars();
   }
 }

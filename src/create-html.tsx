@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import fs from "fs";
+import fs from "fs-extra";
 import path from "path";
 import React from "react";
 import ReactDOMServer from "react-dom/server";
@@ -7,17 +7,14 @@ import ReactDOMServer from "react-dom/server";
 import { getChannels, getMessages, getUsers } from "./load-data";
 import { Channel, Message, Users } from "./interfaces";
 import { chunk } from "lodash";
-import {
-  getChannelDataFilePath,
-  getChannelUploadFilePath,
-  getHTMLFilePath,
-  INDEX_PATH,
-  OUT_DIR,
-} from "./config";
+import { getHTMLFilePath, INDEX_PATH, OUT_DIR } from "./config";
 import { clearLastLine } from "./log-line";
 
 const { toHTML } = require("slack-markdown");
 const users = getUsers();
+
+// Little hack to switch between ./index.html and ./html/...
+let base = "";
 
 interface TimestampProps {
   message: Message;
@@ -43,13 +40,29 @@ const Files: React.FunctionComponent<FilesProps> = (props) => {
     const src = `files/${channelId}/${file.id}.${file.filetype}`;
 
     return (
-      <a key={file.id} href={src}>
+      <a key={file.id} href={src} target="_blank">
         <img className="file" src={src} />
       </a>
     );
   });
 
   return <div className="files">{...fileElements}</div>;
+};
+
+interface AvatarProps {
+  userId?: string;
+}
+const Avatar: React.FunctionComponent<AvatarProps> = (props) => {
+  const { userId } = props;
+  if (!userId) return null;
+
+  const user = users[userId];
+  if (!user || !user.profile || !user.profile.image_512) return null;
+
+  const ext = path.extname(user?.profile?.image_512!);
+  const src = `${base}avatars/${userId}${ext}`;
+
+  return <img className="avatar" src={src} />;
 };
 
 interface MessageProps {
@@ -62,14 +75,10 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
     ? users[message.user]?.name
     : message.user || "Unknown";
 
-  const avatar = message.user ? (
-    <img className="avatar" src={`avatars/${message.user}.png`} width="72" />
-  ) : null;
-
   return (
     <div className="message-gutter">
       <div className="" data-stringify-ignore="true">
-        {avatar}
+        <Avatar userId={message.user} />
       </div>
       <div className="">
         <span className="sender">{username}</span>
@@ -99,6 +108,10 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
     .map((m) => <Message key={m.ts} message={m} channelId={channel.id!} />)
     .reverse();
 
+  if (messages.length === 0) {
+    messages.push(<span key="empty">No messages were ever sent!</span>);
+  }
+
   return (
     <HtmlPage>
       <div style={{ paddingLeft: 10 }}>
@@ -119,12 +132,17 @@ const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
   channel,
 }) => {
   const name = channel.name || channel.id;
+  let leadSymbol = <span># </span>;
+
+  if (channel.is_im && (channel as any).user) {
+    leadSymbol = <Avatar userId={(channel as any).user} />;
+  }
 
   return (
     <li key={name}>
-      {/* Todo: Target iframe */}
       <a href={`html/${channel.id!}-0.html`} target="iframe">
-        # {name}
+        {leadSymbol}
+        <span>{name}</span>
       </a>
     </li>
   );
@@ -154,11 +172,11 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
     <HtmlPage>
       <div id="index">
         <div id="channels">
-          <p>Public Channels</p>
+          <p className="section">Public Channels</p>
           <ul>{publicChannels}</ul>
-          <p>Private Channels</p>
+          <p className="section">Private Channels</p>
           <ul>{privateChannels}</ul>
-          <p>DMs</p>
+          <p className="section">DMs</p>
           <ul>{dmChannels}</ul>
         </div>
         <div id="messages">
@@ -176,8 +194,7 @@ const HtmlPage: React.FunctionComponent = (props) => {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Slack</title>
-        <link rel="stylesheet" href="html/style.css" />
-        <link rel="stylesheet" href="style.css" />
+        <link rel="stylesheet" href={`${base}style.css`} />
       </head>
       <body>{props.children}</body>
     </html>
@@ -191,19 +208,28 @@ interface HeaderProps {
 }
 const Header: React.FunctionComponent<HeaderProps> = (props) => {
   const { channel, index, total } = props;
-  const creator = channel.creator
-    ? users[channel.creator]?.name || channel.creator
-    : "Unknown";
-  const created = channel.created
-    ? format(channel.created * 1000, "PPPPpppp")
-    : "Unknown";
+  let created;
+
+  if (!channel.is_im && !channel.is_mpim) {
+    const creator = channel.creator
+      ? users[channel.creator]?.name || channel.creator
+      : "Unknown";
+    const time = channel.created
+      ? format(channel.created * 1000, "PPPP")
+      : "Unknown";
+
+    created =
+      creator && time ? (
+        <span className="created">
+          Created by {creator} on {time}
+        </span>
+      ) : null;
+  }
 
   return (
     <div className="header">
       <h1>{channel.name || channel.id}</h1>
-      <span className="created">
-        Created by {creator} on {created}
-      </span>
+      {created}
       <p className="topic">{channel.topic?.value}</p>
       <Pagination channelId={channel.id!} index={index} total={total} />
     </div>
@@ -239,8 +265,9 @@ const Pagination: React.FunctionComponent<PaginationProps> = (props) => {
   let jump = [];
 
   for (let ji = 0; ji < total; ji++) {
+    const className = ji === index ? "current" : "";
     jump.push(
-      <a key={ji} href={`${channelId}-${ji}.html`}>
+      <a className={className} key={ji} href={`${channelId}-${ji}.html`}>
         {ji}
       </a>
     );
@@ -251,13 +278,13 @@ const Pagination: React.FunctionComponent<PaginationProps> = (props) => {
       {newer}
       {sep}
       {older}
-      <br />
       <div className="jumper">{jump}</div>
     </div>
   );
 };
 
 function renderIndexPage(channels: Array<Channel>) {
+  base = "html/";
   const page = <IndexPage channels={channels} />;
 
   return renderAndWrite(page, INDEX_PATH);
@@ -297,6 +324,10 @@ export function createHtmlForChannel(channel: Channel) {
   const messages = getMessages(channel.id!);
   const chunks = chunk(messages, 1000);
 
+  if (chunks.length === 0) {
+    renderMessagesPage(channel, [], 0, chunks.length);
+  }
+
   chunks.forEach((chunk, i) => {
     renderMessagesPage(channel, chunk, i, chunks.length);
   });
@@ -318,11 +349,8 @@ export function createHtmlForChannels(
 
   renderIndexPage(channels);
 
-  // Copy in CSS
-  fs.copyFileSync(
-    path.join(__dirname, "../static/style.css"),
-    path.join(OUT_DIR, "html/style.css")
-  );
+  // Copy in fonts & css
+  fs.copySync(path.join(__dirname, "../static"), path.join(OUT_DIR, "html/"));
 }
 
 if (require.main?.filename === __filename) {

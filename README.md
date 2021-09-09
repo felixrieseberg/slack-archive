@@ -1,9 +1,22 @@
-# Fancy Slack Downloader
+# Slack Archive: Export your Slack workspace as static HTML
 
 Alright, so you want to export all your messages on Slack. You want them in a format that you
 can still enjoy in 20 years. This tool will help you do that.
 
-## Setup
+ * **Completely static**: The generated files are pure HTML and will still work in 50 years.
+ * **Everything you care about**: This tool downloads messages, files, and avatars.
+ * **All conversations**: We'll fetch public channels, private channels, DMs, and multi-person DMS.
+
+## Using it
+
+1. Do you already have a user token for your workspace? If not, read on below on how to get a token.
+2. Run `slack-archive`, which will interactively guide you through the options.
+
+```sh
+npx slack-archive
+```
+
+## Getting a token
 
 In order to download messages from private channels and direct messages, we will need a "user
 token". Slack uses the token to identify what permissions it'll give this app. We used to be able
@@ -12,7 +25,7 @@ through a few hoops.
 
 This will be mostly painless, I promise.
 
-#### 1) Make a custom app
+### 1) Make a custom app
 
 As a redirect URL, enter something random that doesn't actually exist. For instace:
 
@@ -22,7 +35,7 @@ https://notarealurl.com/
 
 Make a note of your app's `client id` and `client secret`. We'll need both later.
 
-#### 2) Authorize
+### 2) Authorize
 
 Make sure you have your Slack workspace `URL` (aka team name) and your app's `client id`.
 Then, in a browser, open this URL - replacing `{your-team-name}` and `{your-client-id}`

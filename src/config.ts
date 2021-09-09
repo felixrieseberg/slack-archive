@@ -1,9 +1,12 @@
-import { ensureDirSync } from "fs-extra";
 import path from "path";
 
-export let token = process.env.SLACK_TOKEN;
+export const config = {
+  token: process.env.SLACK_TOKEN,
+};
 
-export const OUT_DIR = path.join(__dirname, "../out");
+export const BASE_DIR = process.cwd();
+export const TOKEN_FILE = path.join(BASE_DIR, ".token");
+export const OUT_DIR = path.join(BASE_DIR, "slack-archive");
 export const DATA_DIR = path.join(OUT_DIR, "data");
 export const HTML_DIR = path.join(OUT_DIR, "html");
 export const FILES_DIR = path.join(HTML_DIR, "files");
@@ -25,6 +28,6 @@ export function getHTMLFilePath(channelId: string, index: number) {
   return path.join(HTML_DIR, `${channelId}-${index}.html`);
 }
 
-export function getAvatarFilePath(userId: string) {
-  return path.join(AVATARS_DIR, `${userId}.png`);
+export function getAvatarFilePath(userId: string, extension: string) {
+  return path.join(AVATARS_DIR, `${userId}${extension}`);
 }

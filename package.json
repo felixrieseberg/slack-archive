@@ -1,19 +1,25 @@
 {
-  "name": "slack-download",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "slack-archive",
+  "version": "0.1.0",
+  "description": "Create static HTML archives for your Slack workspaces",
   "scripts": {
     "prettier": "npx prettier --write src/*",
     "cli": "ts-node src/cli.ts",
-    "messages": "ts-node src/download-messages.ts",
     "files": "ts-node src/download-files.ts",
     "html": "ts-node src/create-html.tsx",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile": "tsc"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "bin": {
+    "slack-archive": "./bin/slack-archive.js"
+  },
+  "keywords": [
+    "slack",
+    "export",
+    "download"
+  ],
+  "author": "Felix Rieseberg <felix@felixrieseberg.com>",
+  "license": "MIT",
   "dependencies": {
     "@slack/web-api": "^6.4.0",
     "date-fns": "^2.23.0",

@@ -7,12 +7,18 @@ import {
 import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
 import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
 
-import { token } from "./config";
-import { downloadAvatarForUser } from "./download-files";
+import { config } from "./config";
 import { Message } from "./interfaces";
 import { clearLastLine } from "./log-line";
 
-const web = new WebClient(token);
+let _webClient: WebClient;
+function getWebClient() {
+  if (_webClient) return _webClient;
+
+  const { token } = config;
+  return (_webClient = new WebClient(token));
+}
+
 const users: Record<string, User> = {};
 
 function isConversation(input: any): input is ConversationsHistoryResponse {
@@ -34,7 +40,7 @@ export async function downloadUser(
   console.log(`Downloading info for user ${item.user}...`);
 
   const user = (
-    await web.users.info({
+    await getWebClient().users.info({
       user: item.user,
     })
   ).user;
@@ -51,7 +57,10 @@ export async function downloadChannels(
 ): Promise<Array<Channel>> {
   const channels = [];
 
-  for await (const page of web.paginate("conversations.list", options)) {
+  for await (const page of getWebClient().paginate(
+    "conversations.list",
+    options
+  )) {
     if (isChannels(page)) {
       clearLastLine();
       console.log(
@@ -60,12 +69,13 @@ export async function downloadChannels(
         })`
       );
 
-      const pageChannels = page.channels || [];
+      const pageChannels = (page.channels || []).filter((c) => !!c.id);
 
       for (const channel of pageChannels) {
         if (channel.is_im) {
           const user = await downloadUser(channel);
-          channel.name = channel.name || `${user?.name} (${user?.real_name})`;
+          const realUserName = user?.real_name ? ` (${user?.real_name})` : "";
+          channel.name = channel.name || `${user?.name}${realUserName}`;
         }
 
         if (channel.is_mpim) {
@@ -95,7 +105,7 @@ export async function downloadMessages(
 
   console.log(`Downloading ${name}...`);
 
-  for await (const page of web.paginate("conversations.history", {
+  for await (const page of getWebClient().paginate("conversations.history", {
     channel: channel.id,
   })) {
     if (isConversation(page)) {

@@ -1,9 +1,11 @@
-import { chunk, uniqBy } from "lodash";
+import { uniqBy } from "lodash";
 import {
   CHANNELS_DATA_PATH,
   USERS_DATA_PATH,
   getChannelDataFilePath,
   OUT_DIR,
+  config,
+  TOKEN_FILE,
 } from "./config";
 import { downloadChannels, downloadUser } from "./download-messages";
 import fs from "fs-extra";
@@ -13,52 +15,6 @@ import { downloadMessages } from "./download-messages";
 import { downloadAvatars, downloadFilesForChannel } from "./download-files";
 import { createHtmlForChannels } from "./create-html";
 import { prompt } from "inquirer";
-import { type } from "os";
-
-interface SelectOption<T> {
-  text: string;
-  value: T;
-}
-
-interface SelectOptions<T> {
-  multiSelect: boolean;
-  inverse: boolean;
-  options: Array<SelectOption<T>>;
-}
-
-// function select<T>({ multiSelect, inverse, options }: SelectOptions<T>) {
-//   return new Promise<Array<T>>((resolve) => {
-//     console.log(`Hit "space" to select an option, "enter" to confirm.`);
-
-//     const selector = selectShell({ multiSelect, inverse });
-//     const result: Array<T> = [];
-
-//     options.forEach(({ text }) => selector.option(text));
-//     selector.list();
-
-//     selector.on("select", (selectedOptions: Array<SelectOption<string>>) => {
-//       selectedOptions.forEach((selectedOption) => {
-//         const option = options.find((o) => o.text === selectedOption.value);
-
-//         if (!option) {
-//           console.warn(
-//             `Selected item ${selectedOption} not found in options list`
-//           );
-//           return;
-//         }
-
-//         result.push(option.value);
-//       });
-
-//       resolve(result);
-//     });
-
-//     selector.on("cancel", () => {
-//       console.log("Aborted. Have a nice day!");
-//       process.exit(0);
-//     });
-//   });
-// }
 
 async function selectMergeFiles(): Promise<boolean> {
   if (!fs.existsSync(CHANNELS_DATA_PATH)) {
@@ -160,8 +116,33 @@ function writeAndMerge(filePath: string, newData: any) {
   fs.outputFileSync(filePath, JSON.stringify(dataToWrite, undefined, 2));
 }
 
+async function getToken() {
+  if (config.token) {
+    console.log(`Using token ${config.token}`);
+    return;
+  }
+
+  if (fs.existsSync(TOKEN_FILE)) {
+    config.token = fs.readFileSync(TOKEN_FILE, "utf-8");
+    return;
+  }
+
+  const result = await prompt([
+    {
+      name: "token",
+      type: "input",
+      message:
+        "Please enter your Slack token (xoxp-...). See README for more details.",
+    },
+  ]);
+
+  config.token = result.token;
+}
+
 async function main() {
   console.log(`Welcome to the Slack Downloader\n`);
+
+  await getToken();
 
   const users: Record<string, User | null> = {};
   const channelTypes = (await selectChannelTypes()).join(",");

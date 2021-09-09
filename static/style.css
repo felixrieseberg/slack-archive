@@ -75,7 +75,19 @@ select {
   }
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Lato&display=swap');
+@font-face {
+  font-family: "Lato";
+  src: url('fonts/Lato-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Lato";
+  src: url('fonts/Lato-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
 
 body, html {
   font-family: 'Lato', sans-serif;
@@ -83,12 +95,16 @@ body, html {
   color: rgb(29, 28, 29);
 }
 
+a {
+  color: rgb(18, 100, 163);
+}
+
 .messages-list {
   padding-top: 100px;
   padding-bottom: 20px;
 }
 
-.avatar {
+.messages-list .avatar {
   height: 36px;
   width: 36px;
   border-radius: 7px;
@@ -123,7 +139,8 @@ body, html {
   top: 0;
   left: 0;
   padding: 10px;
-  height: 90px;
+  width: 100vw;
+  min-height: 70px;
   border-bottom: 1px solid #E2E2E2;
   box-sizing: border-box;
 }
@@ -138,12 +155,18 @@ body, html {
   color: #616061;
 }
 
+.header a:active, .header a.current {
+  color: #000;
+  font-weight: 800;
+}
+
 .header .created {
   float: right;
 }
 
 .jumper {
-
+  overflow: scroll;
+  max-width: calc(100vw - 20px);
 }
 
 .jumper a {
@@ -151,7 +174,7 @@ body, html {
 }
 
 .text {
-
+  word-break: break-all;
 }
 
 .file {
@@ -187,12 +210,35 @@ body, html {
   padding-left: 20px;
 }
 
+#channels .section {
+  font-weight: 800;
+  color: #fff;
+  margin-top: 10px;
+}
+
+#channels .section:first-of-type {
+  margin-top: 0;
+}
+
 #channels a {
   padding: 5px;
   display: block;
   color: #CDC3CE;
   text-decoration: none;
   padding-left: 20px;
+  display: flex;
+  max-height: 28px;
+  white-space: pre;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+#channels a .avatar {
+  height: 20px;
+  width: 20px;
+  border-radius: 3px;
+  margin-right: 10px;
+  object-fit: contain;
 }
 
 #channels a:hover {
