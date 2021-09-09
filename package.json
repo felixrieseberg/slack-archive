@@ -18,6 +18,10 @@
     "export",
     "download"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/felixrieseberg/slack-archive.git"
+  },
   "author": "Felix Rieseberg <felix@felixrieseberg.com>",
   "license": "MIT",
   "dependencies": {
