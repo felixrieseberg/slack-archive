@@ -1,4 +1,4 @@
-# Slack Archive: Export your Slack workspace as static HTML
+# Export your Slack workspace as static HTML
 
 Alright, so you want to export all your messages on Slack. You want them in a format that you
 can still enjoy in 20 years. This tool will help you do that.
@@ -6,6 +6,7 @@ can still enjoy in 20 years. This tool will help you do that.
  * **Completely static**: The generated files are pure HTML and will still work in 50 years.
  * **Everything you care about**: This tool downloads messages, files, and avatars.
  * **All conversations**: We'll fetch public channels, private channels, DMs, and multi-person DMS.
+ * **No cloud, free**: Do all of this for free, without giving anyone your information.
 
 <img width="1151" alt="Screen Shot 2021-09-09 at 6 43 55 PM" src="https://user-images.githubusercontent.com/1426799/132776566-0f75a1b4-4b9a-4b53-8a39-e44e8a747a68.png">
 
@@ -29,13 +30,27 @@ This will be mostly painless, I promise.
 
 ### 1) Make a custom app
 
+Head over to https://api.slack.com/apps and `Create New App`. Select `From scratch`.
+Give it a name and choose the workspace you'd like to export.
+
+Then, from the `Features` menu on the left, select `OAuth & Permission`. 
+
 As a redirect URL, enter something random that doesn't actually exist. For instace:
 
 ```
 https://notarealurl.com/
 ```
 
-Make a note of your app's `client id` and `client secret`. We'll need both later.
+Then, add the following `Scopes`:
+
+ * channels:history
+ * channels:read
+ * files:read
+ * groups:history
+ * remote_files:read
+
+Finally, head back to `Basic Information` and make a note of your app's `client
+id` and `client secret`. We'll need both later.
 
 ### 2) Authorize
 
