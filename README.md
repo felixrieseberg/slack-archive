@@ -7,6 +7,8 @@ can still enjoy in 20 years. This tool will help you do that.
  * **Everything you care about**: This tool downloads messages, files, and avatars.
  * **All conversations**: We'll fetch public channels, private channels, DMs, and multi-person DMS.
 
+<img width="1151" alt="Screen Shot 2021-09-09 at 6 43 55 PM" src="https://user-images.githubusercontent.com/1426799/132776566-0f75a1b4-4b9a-4b53-8a39-e44e8a747a68.png">
+
 ## Using it
 
 1. Do you already have a user token for your workspace? If not, read on below on how to get a token.
