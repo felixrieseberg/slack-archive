@@ -5,7 +5,7 @@ can still enjoy in 20 years. This tool will help you do that.
 
  * **Completely static**: The generated files are pure HTML and will still work in 50 years.
  * **Everything you care about**: This tool downloads messages, files, and avatars.
- * **All conversations**: We'll fetch public channels, private channels, DMs, and multi-person DMS.
+ * **All conversations**: We'll fetch public channels, private channels, DMs, and multi-person DMs.
  * **No cloud, free**: Do all of this for free, without giving anyone your information.
 
 <img width="1151" alt="Screen Shot 2021-09-09 at 6 43 55 PM" src="https://user-images.githubusercontent.com/1426799/132776566-0f75a1b4-4b9a-4b53-8a39-e44e8a747a68.png">
@@ -13,7 +13,8 @@ can still enjoy in 20 years. This tool will help you do that.
 ## Using it
 
 1. Do you already have a user token for your workspace? If not, read on below on how to get a token.
-2. Run `slack-archive`, which will interactively guide you through the options.
+2. Make sure you have [`node` and `npm`](https://nodejs.org/en/) installed, ideally something newer than Node v14.
+3. Run `slack-archive`, which will interactively guide you through the options.
 
 ```sh
 npx slack-archive
