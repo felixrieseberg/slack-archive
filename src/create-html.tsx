@@ -88,7 +88,9 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
         <br />
         <div
           className="text"
-          dangerouslySetInnerHTML={{ __html: toHTML(message.text, { escapeHTML: false }) }}
+          dangerouslySetInnerHTML={{
+            __html: toHTML(message.text, { escapeHTML: false }),
+          }}
         />
         <Files message={message} channelId={channelId} />
       </div>
@@ -131,16 +133,20 @@ interface ChannelLinkProps {
 const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
   channel,
 }) => {
-  const name = channel.name || channel.id;
+  let name = channel.name || channel.id;
   let leadSymbol = <span># </span>;
 
   if (channel.is_im && (channel as any).user) {
     leadSymbol = <Avatar userId={(channel as any).user} />;
   }
 
+  if (channel.is_mpim) {
+    name = name?.replace("Group messaging with: ", "");
+  }
+
   return (
     <li key={name}>
-      <a href={`html/${channel.id!}-0.html`} target="iframe">
+      <a title={name} href={`html/${channel.id!}-0.html`} target="iframe">
         {leadSymbol}
         <span>{name}</span>
       </a>
@@ -161,7 +167,9 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   const privateChannels = channels
-    .filter((channel) => channel.is_private)
+    .filter(
+      (channel) => channel.is_private && !channel.is_im && !channel.is_mpim
+    )
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   const dmChannels = channels

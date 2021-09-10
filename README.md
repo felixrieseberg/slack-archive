@@ -48,6 +48,8 @@ Then, add the following `Scopes`:
  * channels:read
  * files:read
  * groups:history
+ * im:history
+ * mpim:history
  * remote_files:read
 
 Finally, head back to `Basic Information` and make a note of your app's `client
