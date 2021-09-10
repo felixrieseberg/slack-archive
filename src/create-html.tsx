@@ -102,7 +102,7 @@ const Avatar: React.FunctionComponent<AvatarProps> = (props) => {
 };
 
 const slackCallbacks = {
-  user: (id: string) => `@${users[id]?.name || id}`,
+  user: ({ id }: { id: string }) => `@${users[id]?.name || id}`,
 }
 
 interface MessageProps {
