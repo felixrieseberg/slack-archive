@@ -13,6 +13,7 @@ export const FILES_DIR = path.join(HTML_DIR, "files");
 export const AVATARS_DIR = path.join(HTML_DIR, "avatars");
 
 export const INDEX_PATH = path.join(OUT_DIR, "index.html");
+export const MESSAGES_JS_PATH = path.join(__dirname, "../static/search.js");
 export const CHANNELS_DATA_PATH = path.join(DATA_DIR, "channels.json");
 export const USERS_DATA_PATH = path.join(DATA_DIR, "users.json");
 

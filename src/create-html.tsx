@@ -5,13 +5,19 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 
 import { getChannels, getMessages, getUsers } from "./load-data";
-import { Channel, Message, Users } from "./interfaces";
+import { Channel, Message } from "./interfaces";
 import { chunk } from "lodash";
-import { getHTMLFilePath, INDEX_PATH, OUT_DIR } from "./config";
+import {
+  getHTMLFilePath,
+  INDEX_PATH,
+  OUT_DIR,
+  MESSAGES_JS_PATH,
+} from "./config";
 import { clearLastLine } from "./log-line";
 
 const { toHTML } = require("slack-markdown");
 const users = getUsers();
+const MESSAGE_CHUNK = 1000;
 
 // Little hack to switch between ./index.html and ./html/...
 let base = "";
@@ -106,7 +112,7 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
     : message.user || "Unknown";
 
   return (
-    <div className="message-gutter">
+    <div className="message-gutter" id={message.ts}>
       <div className="" data-stringify-ignore="true">
         <Avatar userId={message.user} />
       </div>
@@ -136,6 +142,7 @@ interface MessagesPageProps {
 }
 const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
   const { channel, index, total } = props;
+  const messagesJs = fs.readFileSync(MESSAGES_JS_PATH, "utf8");
   const messages = props.messages
     .map((m) => <Message key={m.ts} message={m} channelId={channel.id!} />)
     .reverse();
@@ -149,9 +156,7 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
       <div style={{ paddingLeft: 10 }}>
         <Header index={index} total={total} channel={channel} />
         <div className="messages-list">{messages}</div>
-        <script
-          dangerouslySetInnerHTML={{ __html: "scrollBy({ top: 99999999 })" }}
-        />
+        <script dangerouslySetInnerHTML={{ __html: messagesJs }} />
       </div>
     </HtmlPage>
   );
@@ -361,7 +366,7 @@ function renderAndWrite(page: JSX.Element, filePath: string) {
 
 export function createHtmlForChannel(channel: Channel) {
   const messages = getMessages(channel.id!);
-  const chunks = chunk(messages, 1000);
+  const chunks = chunk(messages, MESSAGE_CHUNK);
 
   if (chunks.length === 0) {
     renderMessagesPage(channel, [], 0, chunks.length);
