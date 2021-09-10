@@ -101,6 +101,10 @@ const Avatar: React.FunctionComponent<AvatarProps> = (props) => {
   return <img className="avatar" src={src} />;
 };
 
+const slackCallbacks = {
+  user: (id: string) => `@${users[id]?.name || id}`,
+}
+
 interface MessageProps {
   message: Message;
   channelId: string;
@@ -125,7 +129,7 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
         <div
           className="text"
           dangerouslySetInnerHTML={{
-            __html: toHTML(message.text, { escapeHTML: false }),
+            __html: toHTML(message.text, { escapeHTML: false, slackCallbacks }),
           }}
         />
         <Files message={message} channelId={channelId} />
