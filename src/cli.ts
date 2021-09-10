@@ -16,6 +16,8 @@ import { downloadAvatars, downloadFilesForChannel } from "./download-files";
 import { createHtmlForChannels } from "./create-html";
 import { prompt } from "inquirer";
 
+const pJson = require('../package.json');
+
 async function selectMergeFiles(): Promise<boolean> {
   if (!fs.existsSync(CHANNELS_DATA_PATH)) {
     return false;
@@ -140,7 +142,7 @@ async function getToken() {
 }
 
 async function main() {
-  console.log(`Welcome to the Slack Downloader\n`);
+  console.log(`Welcome to "slack-archive" v${pJson.version}\n`);
 
   await getToken();
 
