@@ -8,7 +8,8 @@ import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse"
 import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
 
 import { config } from "./config";
-import { Message } from "./interfaces";
+import { Message, Users } from "./interfaces";
+import { getMessages, getUsers } from "./load-data";
 import { clearLastLine } from "./log-line";
 
 let _webClient: WebClient;
@@ -19,7 +20,7 @@ function getWebClient() {
   return (_webClient = new WebClient(token));
 }
 
-const users: Record<string, User> = {};
+const users: Users = getUsers();
 
 function isConversation(input: any): input is ConversationsHistoryResponse {
   return !!input.messages;
@@ -29,10 +30,7 @@ function isChannels(input: any): input is ConversationsListResponse {
   return !!input.channels;
 }
 
-export async function downloadUser(
-  item: Message | any,
-  downloadAvatar?: boolean
-): Promise<User | null> {
+export async function downloadUser(item: Message | any): Promise<User | null> {
   if (!item.user) return null;
   if (users[item.user]) return users[item.user];
 
@@ -100,6 +98,9 @@ export async function downloadMessages(
     return result;
   }
 
+  result.push(...getMessages(channel.id));
+
+  const oldest = result.length > 0 ? parseInt(result[0].ts || "0", 10) : 0;
   const name =
     channel.name || channel.id || channel.purpose?.value || "Unknown channel";
 
@@ -107,12 +108,16 @@ export async function downloadMessages(
 
   for await (const page of getWebClient().paginate("conversations.history", {
     channel: channel.id,
+    oldest,
   })) {
     if (isConversation(page)) {
       clearLastLine();
-      console.log(
-        `Downloading ${name}: Found ${page.messages?.length} messages (total so far: ${result.length})`
-      );
+
+      const pageLength = page.messages?.length || 0;
+      const fetched = `Fetched ${pageLength} messages`;
+      const total = `(total so far: ${result.length + pageLength}`;
+
+      console.log(`Downloading ${name}: ${fetched} ${total})`);
       result.push(...(page.messages || []));
     }
   }

@@ -99,6 +99,10 @@ a {
   color: rgb(18, 100, 163);
 }
 
+audio, video {
+  max-width: 400px;
+}
+
 .messages-list {
   padding-top: 100px;
   padding-bottom: 20px;

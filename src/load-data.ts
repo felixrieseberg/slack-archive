@@ -8,7 +8,6 @@ import {
 
 function getFile<T>(filePath: string, returnIfEmpty: T): T {
   if (!fs.existsSync(filePath)) {
-    console.log(`No data found: ${filePath} does not exist`);
     return returnIfEmpty;
   }
 

@@ -26,7 +26,7 @@ async function selectMergeFiles(): Promise<boolean> {
       type: "confirm",
       default: true,
       name: "merge",
-      message: `We've found existing archive files. Do you want to add new data (yes)? If you select "No", we'll overwrite the existing data.`,
+      message: `We've found existing archive files. Do you want to append new data (recommended)? \n If you select "No", we'll delete the existing data.`,
     },
   ]);
 

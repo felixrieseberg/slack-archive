@@ -11,6 +11,10 @@ async function downloadURL(
   filePath: string,
   authorize: boolean = true
 ) {
+  if (fs.existsSync(filePath)) {
+    return;
+  }
+
   const { token } = config;
   const headers: HeadersInit = authorize
     ? {
@@ -27,21 +31,28 @@ async function downloadURL(
   }
 }
 
-async function downloadFile(
-  file: File,
-  channelId: string,
-  channelName?: string
-) {
-  const { url_private, id, filetype } = file;
+async function downloadFile(file: File, channelId: string) {
+  const { url_private, id, is_external, mimetype } = file;
+  const { thumb_1024, thumb_720, thumb_480, thumb_pdf } = file as any;
 
-  if (!url_private) return;
+  const fileUrl = is_external
+    ? thumb_1024 || thumb_720 || thumb_480 || thumb_pdf
+    : url_private;
 
-  console.log(`Downloading ${url_private}`);
+  if (!fileUrl) return;
 
-  const extension = filetype ? `.${filetype}` : "";
+  console.log(`Downloading ${fileUrl}`);
+
+  const extension = path.extname(fileUrl);
   const filePath = getChannelUploadFilePath(channelId, `${id}${extension}`);
 
-  await downloadURL(url_private, filePath);
+  await downloadURL(fileUrl, filePath);
+
+  if (mimetype === "application/pdf" && thumb_pdf) {
+    console.log(`Downloading ${thumb_pdf}`);
+    const thumbFile = filePath.replace(extension, ".png");
+    await downloadURL(thumb_pdf, thumbFile);
+  }
 }
 
 export async function downloadFilesForChannel(channelId: string) {
@@ -94,11 +105,26 @@ export async function downloadAvatarForUser(user?: User | null) {
   }
 }
 
-if (require.main?.filename === __filename) {
+async function main() {
   const lastArg = process.argv[process.argv.length - 1];
 
   if (lastArg === "avatars") {
     console.log(`Downloading avatars`);
-    downloadAvatars();
+    await downloadAvatars();
   }
+
+  if (lastArg === "channels") {
+    console.log(`Downloading files for channels`);
+    const channels = getChannels();
+
+    for (const channel of channels) {
+      if (channel.id) {
+        downloadFilesForChannel(channel.id);
+      }
+    }
+  }
+}
+
+if (require.main?.filename === __filename) {
+  main();
 }

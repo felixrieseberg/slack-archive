@@ -5,7 +5,10 @@ can still enjoy in 20 years. This tool will help you do that.
 
  * **Completely static**: The generated files are pure HTML and will still work in 50 years.
  * **Everything you care about**: This tool downloads messages, files, and avatars.
- * **All conversations**: We'll fetch public channels, private channels, DMs, and multi-person DMs.
+ * **Nothing you do not care about**: Choose exactly which channels and DMs to download.
+ * **All types of conversations**: We'll fetch public channels, private channels, DMs, and multi-person DMs.
+ * **Incremental backups**: If you already have local data, we'll extend it - no need to download existing stuff again.
+ * **JSON included**: All data is also stored as JSON, so you can consume it with other tools later.
  * **No cloud, free**: Do all of this for free, without giving anyone your information.
 
 <img width="1151" alt="Screen Shot 2021-09-09 at 6 43 55 PM" src="https://user-images.githubusercontent.com/1426799/132776566-0f75a1b4-4b9a-4b53-8a39-e44e8a747a68.png">
