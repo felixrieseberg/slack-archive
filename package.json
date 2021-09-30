@@ -13,6 +13,7 @@
   "bin": {
     "slack-archive": "./bin/slack-archive.js"
   },
+  "type": "module",
   "keywords": [
     "slack",
     "export",
@@ -29,8 +30,9 @@
     "date-fns": "^2.23.0",
     "fs-extra": "^10.0.0",
     "inquirer": "^8.1.2",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "node-fetch": "^2.6.2",
+    "ora": "^6.0.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "slack-markdown": "^0.0.6"
@@ -39,11 +41,12 @@
     "@types/date-fns": "^2.6.0",
     "@types/fs-extra": "^9.0.12",
     "@types/inquirer": "^8.1.1",
-    "@types/lodash": "^4.14.172",
+    "@types/lodash-es": "^4.14.172",
     "@types/node": "^16.7.13",
     "@types/node-fetch": "^2.5.12",
     "@types/react": "^17.0.20",
     "@types/react-dom": "^17.0.9",
+    "es-main": "^1.0.2",
     "ts-node": "^10.2.1",
     "tslib": "^2.3.1",
     "typescript": "^4.4.2"

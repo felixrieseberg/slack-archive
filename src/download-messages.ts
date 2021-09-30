@@ -6,11 +6,11 @@ import {
 } from "@slack/web-api";
 import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
 import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
+import ora from "ora";
 
-import { config } from "./config";
-import { Message, Users } from "./interfaces";
-import { getMessages, getUsers } from "./load-data";
-import { clearLastLine } from "./log-line";
+import { config } from "./config.js";
+import { Message, Users } from "./interfaces.js";
+import { getMessages, getUsers } from "./load-data.js";
 
 let _webClient: WebClient;
 function getWebClient() {
@@ -34,7 +34,6 @@ export async function downloadUser(item: Message | any): Promise<User | null> {
   if (!item.user) return null;
   if (users[item.user]) return users[item.user];
 
-  clearLastLine();
   console.log(`Downloading info for user ${item.user}...`);
 
   const user = (
@@ -60,7 +59,6 @@ export async function downloadChannels(
     options
   )) {
     if (isChannels(page)) {
-      clearLastLine();
       console.log(
         `Found ${page.channels?.length} channels (found so far: ${
           channels.length + (page.channels?.length || 0)
@@ -89,7 +87,9 @@ export async function downloadChannels(
 }
 
 export async function downloadMessages(
-  channel: Channel
+  channel: Channel,
+  i: number,
+  channelCount: number
 ): Promise<Array<Message>> {
   let result: Array<Message> = [];
 
@@ -99,30 +99,34 @@ export async function downloadMessages(
   }
 
   for (const message of getMessages(channel.id)) {
-    result.unshift(message);
+    result.push(message);
   }
 
   const oldest = result.length > 0 ? parseInt(result[0].ts || "0", 10) : 0;
   const name =
     channel.name || channel.id || channel.purpose?.value || "Unknown channel";
 
-  console.log(`Downloading ${name}...`);
+  const spinner = ora(
+    `Downloading ${i + 1}/${channelCount} ${name}...`
+  ).start();
 
   for await (const page of getWebClient().paginate("conversations.history", {
     channel: channel.id,
     oldest,
   })) {
     if (isConversation(page)) {
-      clearLastLine();
-
       const pageLength = page.messages?.length || 0;
       const fetched = `Fetched ${pageLength} messages`;
       const total = `(total so far: ${result.length + pageLength}`;
 
-      console.log(`Downloading ${name}: ${fetched} ${total})`);
+      spinner.text = `Downloading ${
+        i + 1
+      }/${channelCount} ${name}: ${fetched} ${total})`;
       result.unshift(...(page.messages || []));
     }
   }
+
+  spinner.succeed(`Downloaded ${i + 1}/${channelCount} ${name}...`);
 
   return result;
 }

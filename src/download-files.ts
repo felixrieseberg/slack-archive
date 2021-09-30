@@ -1,10 +1,16 @@
 import fetch from "node-fetch";
 import fs from "fs-extra";
-
-import { File, User } from "./interfaces";
-import { getAvatarFilePath, getChannelUploadFilePath, config } from "./config";
-import { getChannels, getMessages, getUsers } from "./load-data";
+import esMain from "es-main";
+import ora, { Ora } from "ora";
 import path from "path";
+
+import { File, User } from "./interfaces.js";
+import {
+  getAvatarFilePath,
+  getChannelUploadFilePath,
+  config,
+} from "./config.js";
+import { getChannels, getMessages, getUsers } from "./load-data.js";
 
 async function downloadURL(
   url: string,
@@ -31,7 +37,13 @@ async function downloadURL(
   }
 }
 
-async function downloadFile(file: File, channelId: string) {
+async function downloadFile(
+  file: File,
+  channelId: string,
+  i: number,
+  total: number,
+  spinner: Ora
+) {
   const { url_private, id, is_external, mimetype } = file;
   const { thumb_1024, thumb_720, thumb_480, thumb_pdf } = file as any;
 
@@ -41,7 +53,7 @@ async function downloadFile(file: File, channelId: string) {
 
   if (!fileUrl) return;
 
-  console.log(`Downloading ${fileUrl}`);
+  spinner.text = `Downloading ${i}/${total}: ${fileUrl}`;
 
   const extension = path.extname(fileUrl);
   const filePath = getChannelUploadFilePath(channelId, `${id}${extension}`);
@@ -49,7 +61,7 @@ async function downloadFile(file: File, channelId: string) {
   await downloadURL(fileUrl, filePath);
 
   if (mimetype === "application/pdf" && thumb_pdf) {
-    console.log(`Downloading ${thumb_pdf}`);
+    spinner.text = `Downloading ${i}/${total}: ${thumb_pdf}`;
     const thumbFile = filePath.replace(extension, ".png");
     await downloadURL(thumb_pdf, thumbFile);
   }
@@ -61,17 +73,23 @@ export async function downloadFilesForChannel(channelId: string) {
   const channel = channels.find(({ id }) => id === channelId);
   const fileMessages = messages.filter((m) => (m.files?.length || 0) > 0);
 
-  console.log(`Downloading files for channel ${channel?.name || channelId}...`);
+  const spinner = ora(
+    `Downloading files for channel ${channel?.name || channelId}...`
+  ).start();
 
-  for (const fileMessage of fileMessages) {
+  for (const [i, fileMessage] of fileMessages.entries()) {
     if (!fileMessage.files) {
       continue;
     }
 
     for (const file of fileMessage.files) {
-      await downloadFile(file, channelId);
+      await downloadFile(file, channelId, i, fileMessages.length, spinner);
     }
   }
+
+  spinner.succeed(
+    `Downloaded  files for channel ${channel?.name || channelId}.`
+  );
 }
 
 export async function downloadAvatars() {
@@ -125,6 +143,6 @@ async function main() {
   }
 }
 
-if (require.main?.filename === __filename) {
+if (esMain(import.meta)) {
   main();
 }

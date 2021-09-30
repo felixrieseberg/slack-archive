@@ -2,20 +2,25 @@ import { format } from "date-fns";
 import fs from "fs-extra";
 import path from "path";
 import React from "react";
-import ReactDOMServer from "react-dom/server";
+import ReactDOMServer from "react-dom/server.js";
+import ora, { Ora } from "ora";
+import { chunk, sortBy } from "lodash-es";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import esMain from "es-main";
+import slackMarkdown from "slack-markdown";
 
-import { getChannels, getMessages, getUsers } from "./load-data";
-import { Channel, Message } from "./interfaces";
-import { chunk, sortBy } from "lodash";
+import { getChannels, getMessages, getUsers } from "./load-data.js";
+import { Channel, Message } from "./interfaces.js";
 import {
   getHTMLFilePath,
   INDEX_PATH,
   OUT_DIR,
   MESSAGES_JS_PATH,
-} from "./config";
-import { clearLastLine } from "./log-line";
+} from "./config.js";
 
-const { toHTML } = require("slack-markdown");
+const _dirname = dirname(fileURLToPath(import.meta.url));
+
 const users = getUsers();
 const MESSAGE_CHUNK = 1000;
 
@@ -26,7 +31,7 @@ interface TimestampProps {
   message: Message;
 }
 const Timestamp: React.FunctionComponent<TimestampProps> = (props) => {
-  const splitTs = props.message.ts?.split(".") || []
+  const splitTs = props.message.ts?.split(".") || [];
   const jsTs = parseInt(`${splitTs[0]}${splitTs[1].slice(0, 3)}`, 10);
   const ts = format(jsTs, "PPPPpppp");
 
@@ -104,7 +109,7 @@ const Avatar: React.FunctionComponent<AvatarProps> = (props) => {
 
 const slackCallbacks = {
   user: ({ id }: { id: string }) => `@${users[id]?.name || id}`,
-}
+};
 
 interface MessageProps {
   message: Message;
@@ -130,7 +135,10 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
         <div
           className="text"
           dangerouslySetInnerHTML={{
-            __html: toHTML(message.text, { escapeHTML: false, slackCallbacks }),
+            __html: slackMarkdown.toHTML(message.text, {
+              escapeHTML: false,
+              slackCallbacks,
+            }),
           }}
         />
         <Files message={message} channelId={channelId} />
@@ -199,7 +207,7 @@ interface IndexPageProps {
 }
 const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
   const { channels } = props;
-  const sortedChannels = sortBy(channels, 'name')
+  const sortedChannels = sortBy(channels, "name");
 
   const publicChannels = sortedChannels
     .filter(
@@ -344,7 +352,8 @@ function renderMessagesPage(
   channel: Channel,
   messages: Array<Message>,
   index: number,
-  total: number
+  total: number,
+  spinner: Ora
 ) {
   const page = (
     <MessagesPage
@@ -356,6 +365,10 @@ function renderMessagesPage(
   );
 
   const filePath = getHTMLFilePath(channel.id!, index);
+  spinner.text = `${channel.name || channel.id}: Writing ${
+    index + 1
+  }/${total} ${filePath}`;
+  spinner.render();
 
   return renderAndWrite(page, filePath);
 }
@@ -365,22 +378,30 @@ function renderAndWrite(page: JSX.Element, filePath: string) {
   const htmlWDoc = "<!DOCTYPE html>" + html;
 
   fs.writeFileSync(filePath, htmlWDoc);
-
-  clearLastLine();
-  console.log(`Wrote ${filePath}`);
 }
 
-export function createHtmlForChannel(channel: Channel) {
+export function createHtmlForChannel(
+  channel: Channel,
+  i: number,
+  total: number
+) {
   const messages = getMessages(channel.id!);
   const chunks = chunk(messages, MESSAGE_CHUNK);
+  const spinner = ora(
+    `Rendering HTML for ${i + 1}/${total} ${channel.name || channel.id}`
+  ).start();
 
   if (chunks.length === 0) {
-    renderMessagesPage(channel, [], 0, chunks.length);
+    renderMessagesPage(channel, [], 0, chunks.length, spinner);
   }
 
-  chunks.forEach((chunk, i) => {
-    renderMessagesPage(channel, chunk, i, chunks.length);
+  chunks.forEach((chunk, chunkI) => {
+    renderMessagesPage(channel, chunk, chunkI, chunks.length, spinner);
   });
+
+  spinner.succeed(
+    `Rendered HTML for ${i + 1}/${total} ${channel.name || channel.id}`
+  );
 }
 
 export function createHtmlForChannels(
@@ -388,21 +409,21 @@ export function createHtmlForChannels(
 ) {
   console.log(`Creating HTML files...`);
 
-  for (const channel of channels) {
+  for (const [i, channel] of channels.entries()) {
     if (!channel.id) {
       console.warn(`Can't create HTML for channel: No id found`, channel);
       continue;
     }
 
-    createHtmlForChannel(channel);
+    createHtmlForChannel(channel, i, channels.length);
   }
 
   renderIndexPage(channels);
 
   // Copy in fonts & css
-  fs.copySync(path.join(__dirname, "../static"), path.join(OUT_DIR, "html/"));
+  fs.copySync(path.join(_dirname, "../static"), path.join(OUT_DIR, "html/"));
 }
 
-if (require.main?.filename === __filename) {
+if (esMain(import.meta)) {
   createHtmlForChannels();
 }

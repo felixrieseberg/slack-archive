@@ -1,10 +1,11 @@
 import fs from "fs-extra";
-import { Channel, Message, Users } from "./interfaces";
+
+import { Channel, Message, Users } from "./interfaces.js";
 import {
   CHANNELS_DATA_PATH,
   getChannelDataFilePath,
   USERS_DATA_PATH,
-} from "./config";
+} from "./config.js";
 
 function getFile<T>(filePath: string, returnIfEmpty: T): T {
   if (!fs.existsSync(filePath)) {

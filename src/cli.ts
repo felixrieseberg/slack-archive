@@ -1,4 +1,9 @@
-import { uniqBy } from "lodash";
+import { uniqBy } from "lodash-es";
+import inquirer from "inquirer";
+import fs from "fs-extra";
+import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
+import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
+
 import {
   CHANNELS_DATA_PATH,
   USERS_DATA_PATH,
@@ -6,17 +11,13 @@ import {
   OUT_DIR,
   config,
   TOKEN_FILE,
-} from "./config";
-import { downloadChannels, downloadUser } from "./download-messages";
-import fs from "fs-extra";
-import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
-import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
-import { downloadMessages } from "./download-messages";
-import { downloadAvatars, downloadFilesForChannel } from "./download-files";
-import { createHtmlForChannels } from "./create-html";
-import { prompt } from "inquirer";
+} from "./config.js";
+import { downloadChannels, downloadUser } from "./download-messages.js";
+import { downloadMessages } from "./download-messages.js";
+import { downloadAvatars, downloadFilesForChannel } from "./download-files.js";
+import { createHtmlForChannels } from "./create-html.js";
 
-const pJson = require('../package.json');
+const { prompt } = inquirer;
 
 async function selectMergeFiles(): Promise<boolean> {
   if (!fs.existsSync(CHANNELS_DATA_PATH)) {
@@ -141,8 +142,8 @@ async function getToken() {
   config.token = result.token;
 }
 
-async function main() {
-  console.log(`Welcome to "slack-archive" v${pJson.version}\n`);
+export async function main() {
+  console.log(`Welcome to slack-archive`);
 
   await getToken();
 
@@ -158,14 +159,14 @@ async function main() {
 
   writeAndMerge(CHANNELS_DATA_PATH, selectedChannels);
 
-  for (const channel of selectedChannels) {
+  for (const [i, channel] of selectedChannels.entries()) {
     if (!channel.id) {
       console.warn(`Selected channel does not have an id`, channel);
       continue;
     }
 
     // Download messages & users
-    let result = await downloadMessages(channel);
+    let result = await downloadMessages(channel, i, selectChannels.length);
     for (const message of result) {
       if (message.user && users[message.user] === undefined) {
         users[message.user] = await downloadUser(message);
@@ -173,9 +174,9 @@ async function main() {
     }
 
     // Sort messages
-    result = uniqBy(result, 'ts');
+    result = uniqBy(result, "ts");
     result = result.sort((a, b) => {
-      return parseFloat(b.ts || '0') - parseFloat(a.ts || '0')
+      return parseFloat(b.ts || "0") - parseFloat(a.ts || "0");
     });
 
     writeAndMerge(USERS_DATA_PATH, users);
