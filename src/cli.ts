@@ -165,12 +165,18 @@ async function main() {
     }
 
     // Download messages & users
-    const result = await downloadMessages(channel);
+    let result = await downloadMessages(channel);
     for (const message of result) {
       if (message.user && users[message.user] === undefined) {
         users[message.user] = await downloadUser(message);
       }
     }
+
+    // Sort messages
+    result = uniqBy(result, 'ts');
+    result = result.sort((a, b) => {
+      return parseFloat(b.ts || '0') - parseFloat(a.ts || '0')
+    });
 
     writeAndMerge(USERS_DATA_PATH, users);
     fs.outputFileSync(

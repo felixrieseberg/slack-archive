@@ -6,7 +6,7 @@ import ReactDOMServer from "react-dom/server";
 
 import { getChannels, getMessages, getUsers } from "./load-data";
 import { Channel, Message } from "./interfaces";
-import { chunk } from "lodash";
+import { chunk, sortBy } from "lodash";
 import {
   getHTMLFilePath,
   INDEX_PATH,
@@ -26,7 +26,8 @@ interface TimestampProps {
   message: Message;
 }
 const Timestamp: React.FunctionComponent<TimestampProps> = (props) => {
-  const jsTs = parseInt(`${props.message.ts?.split(".")[0]}000`, 10);
+  const splitTs = props.message.ts?.split(".") || []
+  const jsTs = parseInt(`${splitTs[0]}${splitTs[1].slice(0, 3)}`, 10);
   const ts = format(jsTs, "PPPPpppp");
 
   return <span className="c-timestamp__label">{ts}</span>;
@@ -198,21 +199,22 @@ interface IndexPageProps {
 }
 const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
   const { channels } = props;
+  const sortedChannels = sortBy(channels, 'name')
 
-  const publicChannels = channels
+  const publicChannels = sortedChannels
     .filter(
       (channel) => !channel.is_private && !channel.is_mpim && !channel.is_im
     )
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
-  const privateChannels = channels
+  const privateChannels = sortedChannels
     .filter(
       (channel) => channel.is_private && !channel.is_im && !channel.is_mpim
     )
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
-  const dmChannels = channels
-    .filter((channel) => channel.is_mpim || channel.is_im)
+  const dmChannels = sortedChannels
+    .filter((channel) => channel.is_im || channel.is_mpim)
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   return (

@@ -91,14 +91,16 @@ export async function downloadChannels(
 export async function downloadMessages(
   channel: Channel
 ): Promise<Array<Message>> {
-  const result: Array<Message> = [];
+  let result: Array<Message> = [];
 
   if (!channel.id) {
     console.warn(`Channel without id`, channel);
     return result;
   }
 
-  result.push(...getMessages(channel.id));
+  for (const message of getMessages(channel.id)) {
+    result.unshift(message);
+  }
 
   const oldest = result.length > 0 ? parseInt(result[0].ts || "0", 10) : 0;
   const name =
@@ -118,7 +120,7 @@ export async function downloadMessages(
       const total = `(total so far: ${result.length + pageLength}`;
 
       console.log(`Downloading ${name}: ${fetched} ${total})`);
-      result.push(...(page.messages || []));
+      result.unshift(...(page.messages || []));
     }
   }
 
