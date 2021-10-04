@@ -88,7 +88,7 @@ export async function downloadFilesForChannel(channelId: string) {
   }
 
   spinner.succeed(
-    `Downloaded  files for channel ${channel?.name || channelId}.`
+    `Downloaded files for channel ${channel?.name || channelId}.`
   );
 }
 

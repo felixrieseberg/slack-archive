@@ -166,7 +166,7 @@ export async function main() {
     }
 
     // Download messages & users
-    let result = await downloadMessages(channel, i, selectChannels.length);
+    let result = await downloadMessages(channel, i, selectedChannels.length);
     for (const message of result) {
       if (message.user && users[message.user] === undefined) {
         users[message.user] = await downloadUser(message);
