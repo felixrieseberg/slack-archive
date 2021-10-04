@@ -20,7 +20,6 @@ import {
 } from "./config.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
-
 const users = getUsers();
 const MESSAGE_CHUNK = 1000;
 
