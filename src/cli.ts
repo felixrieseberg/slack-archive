@@ -10,12 +10,13 @@ import {
   getChannelDataFilePath,
   OUT_DIR,
   config,
-  TOKEN_FILE,
+  TOKEN_FILE
 } from "./config.js";
 import { downloadChannels, downloadUser } from "./download-messages.js";
 import { downloadMessages } from "./download-messages.js";
 import { downloadAvatars, downloadFilesForChannel } from "./download-files.js";
 import { createHtmlForChannels } from "./create-html.js";
+import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
 
 const { prompt } = inquirer;
 
@@ -29,8 +30,8 @@ async function selectMergeFiles(): Promise<boolean> {
       type: "confirm",
       default: true,
       name: "merge",
-      message: `We've found existing archive files. Do you want to append new data (recommended)? \n If you select "No", we'll delete the existing data.`,
-    },
+      message: `We've found existing archive files. Do you want to append new data (recommended)? \n If you select "No", we'll delete the existing data.`
+    }
   ]);
 
   if (!merge) {
@@ -43,9 +44,9 @@ async function selectMergeFiles(): Promise<boolean> {
 async function selectChannels(
   channels: Array<Channel>
 ): Promise<Array<Channel>> {
-  const choices = channels.map((channel) => ({
+  const choices = channels.map(channel => ({
     name: channel.name || channel.id || "Unknown",
-    value: channel,
+    value: channel
   }));
 
   const result = await prompt([
@@ -54,8 +55,8 @@ async function selectChannels(
       loop: true,
       name: "channels",
       message: "Which channels do you want to download?",
-      choices,
-    },
+      choices
+    }
   ]);
 
   return result.channels;
@@ -65,20 +66,20 @@ async function selectChannelTypes(): Promise<Array<string>> {
   const choices = [
     {
       name: "Public Channels",
-      value: "public_channel",
+      value: "public_channel"
     },
     {
       name: "Private Channels",
-      value: "private_channel",
+      value: "private_channel"
     },
     {
       name: "Multi-Person Direct Message",
-      value: "mpim",
+      value: "mpim"
     },
     {
       name: "Direct Messages",
-      value: "im",
-    },
+      value: "im"
+    }
   ];
 
   const result = await prompt([
@@ -87,8 +88,8 @@ async function selectChannelTypes(): Promise<Array<string>> {
       loop: true,
       name: "channel-types",
       message: `Which channel types do you want to download?`,
-      choices,
-    },
+      choices
+    }
   ]);
 
   return result["channel-types"];
@@ -103,7 +104,7 @@ function writeAndMerge(filePath: string, newData: any) {
     if (Array.isArray(oldData)) {
       dataToWrite = [...oldData, ...newData];
 
-      if (newData[0].id) {
+      if (newData && newData[0] && newData[0].id) {
         dataToWrite = uniqBy(dataToWrite, (v: any) => v.id);
       }
     } else if (typeof newData === "object") {
@@ -111,7 +112,7 @@ function writeAndMerge(filePath: string, newData: any) {
     } else {
       console.error(`writeAndMerge: Did not understand type of data`, {
         filePath,
-        newData,
+        newData
       });
     }
   }
@@ -135,8 +136,8 @@ async function getToken() {
       name: "token",
       type: "input",
       message:
-        "Please enter your Slack token (xoxp-...). See README for more details.",
-    },
+        "Please enter your Slack token (xoxp-...). See README for more details."
+    }
   ]);
 
   config.token = result.token;
@@ -146,6 +147,7 @@ export async function main() {
   console.log(`Welcome to slack-archive`);
 
   await getToken();
+  await createBackup();
 
   const users: Record<string, User | null> = {};
   const channelTypes = (await selectChannelTypes()).join(",");
@@ -191,7 +193,10 @@ export async function main() {
   }
 
   // Create HTML
-  await createHtmlForChannels();
+  await createHtmlForChannels(selectedChannels);
+
+  await deleteBackup();
+  await deleteOlderBackups();
 
   console.log(`All done.`);
 }

@@ -4,7 +4,7 @@ import { Channel, Message, Users } from "./interfaces.js";
 import {
   CHANNELS_DATA_PATH,
   getChannelDataFilePath,
-  USERS_DATA_PATH,
+  USERS_DATA_PATH
 } from "./config.js";
 
 function getFile<T>(filePath: string, returnIfEmpty: T): T {

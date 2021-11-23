@@ -340,8 +340,9 @@ const Pagination: React.FunctionComponent<PaginationProps> = (props) => {
   );
 };
 
-function renderIndexPage(channels: Array<Channel>) {
+function renderIndexPage() {
   base = "html/";
+  const channels = getChannels();
   const page = <IndexPage channels={channels} />;
 
   return renderAndWrite(page, INDEX_PATH);
@@ -417,7 +418,7 @@ export function createHtmlForChannels(
     createHtmlForChannel(channel, i, channels.length);
   }
 
-  renderIndexPage(channels);
+  renderIndexPage();
 
   // Copy in fonts & css
   fs.copySync(path.join(_dirname, "../static"), path.join(OUT_DIR, "html/"));
