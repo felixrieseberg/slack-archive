@@ -48,7 +48,7 @@ export async function deleteOlderBackups() {
     const oldBackupPaths: Array<string> = [];
 
     for (const entry of fs.readdirSync(OUT_DIR)) {
-      const isBackup = entry.startsWith('data_backup_');
+      const isBackup = entry.startsWith("data_backup_");
       if (!isBackup) continue;
 
       const dir = path.join(OUT_DIR, entry);
@@ -66,8 +66,10 @@ export async function deleteOlderBackups() {
         type: "confirm",
         default: true,
         name: "del",
-        message: `We've found existing backups (${oldBackupNames.join(', ')}). Do you want to delete them?`
-      }
+        message: `We've found existing backups (${oldBackupNames.join(
+          ", "
+        )}). Do you want to delete them?`,
+      },
     ]);
 
     if (del) {
