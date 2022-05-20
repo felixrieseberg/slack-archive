@@ -127,7 +127,7 @@ async function getToken() {
   }
 
   if (fs.existsSync(TOKEN_FILE)) {
-    config.token = fs.readFileSync(TOKEN_FILE, "utf-8");
+    config.token = fs.readFileSync(TOKEN_FILE, "utf-8").trim();
     return;
   }
 
