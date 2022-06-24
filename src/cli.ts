@@ -11,6 +11,7 @@ import {
   OUT_DIR,
   config,
   TOKEN_FILE,
+  AUTOMATIC_MODE,
 } from "./config.js";
 import { downloadChannels, downloadUser } from "./download-messages.js";
 import { downloadMessages } from "./download-messages.js";
@@ -21,14 +22,20 @@ import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
 const { prompt } = inquirer;
 
 async function selectMergeFiles(): Promise<boolean> {
+  const defaultResponse = true;
+
   if (!fs.existsSync(CHANNELS_DATA_PATH)) {
     return false;
+  }
+
+  if (AUTOMATIC_MODE) {
+    return defaultResponse;
   }
 
   const { merge } = await prompt([
     {
       type: "confirm",
-      default: true,
+      default: defaultResponse,
       name: "merge",
       message: `We've found existing archive files. Do you want to append new data (recommended)? \n If you select "No", we'll delete the existing data.`,
     },
@@ -48,6 +55,10 @@ async function selectChannels(
     name: channel.name || channel.id || "Unknown",
     value: channel,
   }));
+
+  if (AUTOMATIC_MODE) {
+    return channels;
+  }
 
   const result = await prompt([
     {
@@ -81,6 +92,10 @@ async function selectChannelTypes(): Promise<Array<string>> {
       value: "im",
     },
   ];
+
+  if (AUTOMATIC_MODE) {
+    return ["public_channel", "private_channel", "mpim", "im"];
+  }
 
   const result = await prompt([
     {
@@ -145,6 +160,10 @@ async function getToken() {
 
 export async function main() {
   console.log(`Welcome to slack-archive`);
+
+  if (AUTOMATIC_MODE) {
+    console.log(`Running in fully automatic mode without prompts`);
+  }
 
   await getToken();
   await createBackup();

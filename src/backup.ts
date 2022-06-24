@@ -2,7 +2,7 @@ import fs from "fs-extra";
 import inquirer from "inquirer";
 import path from "path";
 import trash from "trash";
-import { DATA_DIR, OUT_DIR } from "./config.js";
+import { AUTOMATIC_MODE, DATA_DIR, OUT_DIR } from "./config.js";
 
 const { prompt } = inquirer;
 
@@ -60,6 +60,10 @@ export async function deleteOlderBackups() {
     }
 
     if (oldBackupPaths.length === 0) return;
+
+    if (AUTOMATIC_MODE) {
+      console.log(`Found existing older backups, but in automatic mode: Proceeding without deleting them.`);
+    }
 
     const { del } = await prompt([
       {

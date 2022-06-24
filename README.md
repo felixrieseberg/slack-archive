@@ -23,6 +23,12 @@ can still enjoy in 20 years. This tool will help you do that.
 npx slack-archive
 ```
 
+### Parameters
+
+```
+--automatic: Don't prompt and automatically fetch all messages from all channels.
+```
+
 ## Getting a token
 
 In order to download messages from private channels and direct messages, we will need a "user
