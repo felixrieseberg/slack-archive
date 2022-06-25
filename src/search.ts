@@ -1,5 +1,6 @@
 import fs from "fs-extra";
 import ora, { Ora } from "ora";
+import { getChannelName } from "./channel-name.js";
 
 import {
   NO_SEARCH,
@@ -7,8 +8,40 @@ import {
   SEARCH_PATH,
   SEARCH_TEMPLATE_PATH,
 } from "./config.js";
-import { SearchFile, SearchMessage } from "./interfaces";
+import { SearchFile, SearchMessage, SearchPageIndex } from "./interfaces";
 import { getChannels, getMessages, getUsers } from "./load-data.js";
+
+// Format:
+// channelId: [ timestamp0, timestamp1, timestamp2, ... ]
+//
+// channelId: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+// pages: {
+//   0: [ 10, 9, 8 ]
+//   1: [ 7, 6, 5 ]
+//   2: [ 4, 3, 2 ]
+//   3: [ 1, 0 ]
+// }
+// INDEX_OF_PAGES: {
+//   channelId: [8, 5, 2, 0]
+// }
+//
+// For channelId, a message older than timestamp 0 but younger than timestamp1 is on page 1.
+// In our example above, the message with timestamp 6 is older than 5 but younger than 8.
+const INDEX_OF_PAGES: SearchPageIndex = {
+}
+
+export function recordPage(channelId?: string, timestamp?: string) {
+  if (!channelId || !timestamp) {
+    console.warn(`Search: Cannot record page: channelId: ${channelId} timestamp: ${timestamp}`);
+    return;
+  }
+
+  if (!INDEX_OF_PAGES[channelId]) {
+    INDEX_OF_PAGES[channelId] = [];
+  }
+
+  INDEX_OF_PAGES[channelId].push(timestamp);
+}
 
 export async function createSearch() {
   if (NO_SEARCH) return;
@@ -28,16 +61,16 @@ async function createSearchFile(spinner: Ora) {
     channels: {},
     users: {},
     messages: {},
+    pages: INDEX_OF_PAGES
   };
 
+  // Users
   for (const user in users) {
     result.users[user] = users[user].name || users[user].real_name || "Unknown";
   }
 
+  // Channels & Messages
   for (const [i, channel] of channels.entries()) {
-    // Little debugging hack
-    // if (i > 10) continue;
-
     if (!channel.id) {
       console.warn(
         `Can't create search file for channel ${channel.name}: No id found`,
@@ -46,13 +79,8 @@ async function createSearchFile(spinner: Ora) {
       continue;
     }
 
-    const name =
-      channel.name || channel.id || channel.purpose?.value || "Unknown channel";
-    result.channels[channel.id] = name;
-
-    spinner.text = `Creating search file for channel ${i + 1}/${
-      channels.length
-    } ${name}...`;
+    // Little debugging hack
+    if (i > 10) continue;
 
     const messages = getMessages(channel.id).map((message) => {
       const searchMessage: SearchMessage = {
@@ -64,7 +92,8 @@ async function createSearchFile(spinner: Ora) {
       return searchMessage;
     });
 
-    result.messages[channel.id] = messages;
+    result.messages![channel.id] = messages;
+    result.channels[channel.id] = getChannelName(channel);
   }
 
   const jsContent = `window.search_data = ${JSON.stringify(result)};`;
@@ -91,7 +120,17 @@ async function createSearchHTML() {
     getScript("minisearch@5.0.0/dist/umd/index.min.js")
   );
 
+  template = template.replace(
+    `<!-- Size -->`,
+    getSize()
+  );
+
   fs.outputFileSync(SEARCH_PATH, template);
+}
+
+function getSize() {
+  const mb = fs.statSync(SEARCH_DATA_PATH).size / 1048576; //MB
+  return `Loading ${Math.round(mb)}MB of data`;
 }
 
 function getScript(script: string) {

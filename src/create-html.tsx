@@ -19,6 +19,7 @@ import {
   MESSAGES_JS_PATH,
 } from "./config.js";
 import { slackTimestampToJavaScriptTimestamp } from "./timestamp.js";
+import { recordPage } from "./search.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const users = getUsers();
@@ -155,6 +156,8 @@ interface MessagesPageProps {
 const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
   const { channel, index, total } = props;
   const messagesJs = fs.readFileSync(MESSAGES_JS_PATH, "utf8");
+
+  // Newest message is first
   const messages = props.messages
     .map((m) => <Message key={m.ts} message={m} channelId={channel.id!} />)
     .reverse();
@@ -369,6 +372,9 @@ function renderMessagesPage(
     index + 1
   }/${total} ${filePath}`;
   spinner.render();
+
+  // Update the search index. In messages, the youngest message is first.
+  recordPage(channel.id, messages[messages.length - 1].ts);
 
   return renderAndWrite(page, filePath);
 }

@@ -266,9 +266,21 @@ audio, video {
 
 #search ul {
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 #search li {
   padding: 5px;
   border-bottom: 1px solid #E2E2E2;
+  background: hsl(0deg 0% 98%);
+  border-radius: 5px;
+  max-width: 700px;
+  text-align: left;
+}
+
+#search a {
+  text-decoration: none;
+  color: unset;
 }

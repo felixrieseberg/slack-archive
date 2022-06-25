@@ -8,7 +8,8 @@
     "files": "ts-node src/download-files.ts",
     "html": "ts-node src/create-html.tsx",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile": "tsc"
+    "compile": "tsc",
+    "watch": "tsc -w"
   },
   "bin": {
     "slack-archive": "./bin/slack-archive.js"
