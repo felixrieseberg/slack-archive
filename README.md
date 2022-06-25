@@ -29,7 +29,7 @@ npx slack-archive
 ```
 --automatic: Don't prompt and automatically fetch all messages from all channels.
 --no-backup: Don't create backups. Not recommended.
---no-search: Don't create a search file.
+--no-search: Don't create a search file, saving disk space.
 ```
 
 ## Getting a token

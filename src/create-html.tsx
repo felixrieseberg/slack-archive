@@ -246,8 +246,8 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
           <iframe name="iframe" src={`html/${channels[0].id!}-0.html`} />
         </div>
         <script
-          dangerouslySetInnerHTML={{
-            __html: `
+          dangerouslySetInnerHTML={{ __html:
+            `
             const urlSearchParams = new URLSearchParams(window.location.search);
             const channelValue = urlSearchParams.get("c");
             const tsValue = urlSearchParams.get("ts");
@@ -256,7 +256,7 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
               const iframe = document.getElementsByName('iframe')[0]
               iframe.src = "html/" + decodeURIComponent(channelValue) + '.html' + '#' + (tsValue || '');
             }
-            `,
+            `
           }}
         />
       </div>
@@ -392,7 +392,9 @@ function renderMessagesPage(
   spinner.render();
 
   // Update the search index. In messages, the youngest message is first.
-  recordPage(channel.id, messages[messages.length - 1].ts);
+  if (messages.length > 0) {
+    recordPage(channel.id, messages[messages.length - 1]?.ts);
+  }
 
   return renderAndWrite(page, filePath);
 }
