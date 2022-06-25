@@ -12,12 +12,15 @@ import {
   config,
   TOKEN_FILE,
   AUTOMATIC_MODE,
+  DATE_FILE,
 } from "./config.js";
 import { downloadChannels, downloadUser } from "./download-messages.js";
 import { downloadMessages } from "./download-messages.js";
 import { downloadAvatars, downloadFilesForChannel } from "./download-files.js";
 import { createHtmlForChannels } from "./create-html.js";
 import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
+import { isValid, parseISO } from "date-fns";
+import { createSearch } from "./search.js";
 
 const { prompt } = inquirer;
 
@@ -158,8 +161,35 @@ async function getToken() {
   config.token = result.token;
 }
 
+function writeLastSuccessfulArchive() {
+  const now = new Date();
+  fs.outputFileSync(DATE_FILE, now.toISOString());
+}
+
+function getLastSuccessfulRun() {
+  if (!fs.existsSync(DATE_FILE)) {
+    return "";
+  }
+
+  const lastSuccessfulArchive = fs.readFileSync(DATE_FILE, "utf-8");
+
+  let date = null;
+
+  try {
+    date = parseISO(lastSuccessfulArchive);
+  } catch (error) {
+    return "";
+  }
+
+  if (date && isValid(date)) {
+    return `. Last successful run: ${date.toLocaleString()}`;
+  }
+
+  return "";
+}
+
 export async function main() {
-  console.log(`Welcome to slack-archive`);
+  console.log(`Welcome to slack-archive${getLastSuccessfulRun()}`);
 
   if (AUTOMATIC_MODE) {
     console.log(`Running in fully automatic mode without prompts`);
@@ -214,8 +244,13 @@ export async function main() {
   // Create HTML
   await createHtmlForChannels(selectedChannels);
 
+  // Create search file
+  await createSearch();
+
   await deleteBackup();
   await deleteOlderBackups();
+
+  writeLastSuccessfulArchive();
 
   console.log(`All done.`);
 }

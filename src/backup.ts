@@ -2,14 +2,14 @@ import fs from "fs-extra";
 import inquirer from "inquirer";
 import path from "path";
 import trash from "trash";
-import { AUTOMATIC_MODE, DATA_DIR, OUT_DIR } from "./config.js";
+import { AUTOMATIC_MODE, DATA_DIR, NO_BACKUP, OUT_DIR } from "./config.js";
 
 const { prompt } = inquirer;
 
 let backupDir = `${DATA_DIR}_backup_${Date.now()}`;
 
 export async function createBackup() {
-  if (!fs.existsSync(DATA_DIR)) {
+  if (NO_BACKUP || !fs.existsSync(DATA_DIR)) {
     return;
   }
 
@@ -62,7 +62,9 @@ export async function deleteOlderBackups() {
     if (oldBackupPaths.length === 0) return;
 
     if (AUTOMATIC_MODE) {
-      console.log(`Found existing older backups, but in automatic mode: Proceeding without deleting them.`);
+      console.log(
+        `Found existing older backups, but in automatic mode: Proceeding without deleting them.`
+      );
     }
 
     const { del } = await prompt([

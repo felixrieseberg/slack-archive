@@ -10,6 +10,7 @@ can still enjoy in 20 years. This tool will help you do that.
  * **Incremental backups**: If you already have local data, we'll extend it - no need to download existing stuff again.
  * **JSON included**: All data is also stored as JSON, so you can consume it with other tools later.
  * **No cloud, free**: Do all of this for free, without giving anyone your information.
+ * **Basic search**: Creates a very basic search file.
 
 <img width="1151" alt="Screen Shot 2021-09-09 at 6 43 55 PM" src="https://user-images.githubusercontent.com/1426799/132776566-0f75a1b4-4b9a-4b53-8a39-e44e8a747a68.png">
 
@@ -27,6 +28,8 @@ npx slack-archive
 
 ```
 --automatic: Don't prompt and automatically fetch all messages from all channels.
+--no-backup: Don't create backups. Not recommended.
+--no-search: Don't create a search file.
 ```
 
 ## Getting a token

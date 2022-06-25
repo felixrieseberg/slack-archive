@@ -12,3 +12,15 @@ export type Message = SlackMessage;
 export type Channel = SlackChannel;
 
 export type File = SlackFile;
+
+export type SearchFile = {
+  users: Record<string, string>; // userId -> userName
+  channels: Record<string, string>; // channelId -> channelName
+  messages: Record<string, Array<SearchMessage>>;
+};
+
+export type SearchMessage = {
+  m?: string; // Message
+  u?: string; // User
+  t?: string; // Timestamp
+};

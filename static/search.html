@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Message Search</title>
+    <link rel="stylesheet" href="html/style.css" />
+    <script src="data/search.js" type="text/javascript"></script>
+    <!-- react -->
+    <!-- react-dom -->
+    <!-- babel -->
+    <!-- minisearch -->
+  </head>
+
+  <body>
+    <script type="text/babel" data-type="module">
+      class App extends React.PureComponent {
+        constructor(props) {
+          super(props);
+          const miniSearch = new MiniSearch({
+            idField: "t",
+            fields: ["m"], // fields to index for full-text search
+            storeFields: ["t", "u", "m", "c"], // fields to return with search results
+          });
+
+          this.handleSearchChange = this.handleSearchChange.bind(this);
+          this.handleSearchClear = this.handleSearchClear.bind(this);
+          this.searchMessages = this.searchMessages.bind(this);
+
+          this.searchInputRef = React.createRef();
+          this.state = {
+            matchingMessages: [],
+            searchValue: "",
+            ready: false,
+            miniSearch,
+          };
+        }
+
+        componentDidMount() {
+          const { miniSearch } = this.state;
+          const { channels, messages, users } = window.search_data;
+          const allMessages = [];
+
+          console.time(`Loading messages`);
+          for (const channel in messages) {
+            console.log(`Processing ${channel}`);
+            const channelMessages = messages[channel];
+
+            for (const message of channelMessages) {
+              allMessages.push({ ...message, c: channel });
+            }
+          }
+          console.timeEnd(`Loading messages`);
+          console.log(`Loaded ${allMessages.length} messages`);
+
+          console.time(`Indexing messages`);
+          miniSearch.addAll(allMessages);
+          console.timeEnd(`Indexing messages`);
+
+          this.setState({ ready: true });
+        }
+
+        handleSearchChange({ target: { value } }) {
+          this.setState({ searchValue: value });
+          const matchingMessages =
+            value.length > 1 ? this.searchMessages(value) : [];
+          this.setState({ matchingMessages });
+        }
+
+        handleSearchClear() {
+          this.setState({ searchValue: "", matchingMessages: [] });
+        }
+
+        searchMessages(query) {
+          const { miniSearch } = this.state;
+          return miniSearch.search(query).slice(0, 50);
+        }
+
+        render() {
+          const { matchingMessages, searchValue, ready } = this.state;
+          return (
+            <div className="App">
+              <article className="main">
+                {ready ? (
+                  <Header
+                    onChange={this.handleSearchChange}
+                    onKeyDown={this.handleSearchKeyDown}
+                    onSearchClear={this.handleSearchClear}
+                    value={searchValue}
+                    searchInputRef={this.searchInputRef}
+                  />
+                ) : (
+                  "Loading"
+                )}
+                {matchingMessages && matchingMessages.length > 0 ? (
+                  <MessagesList messages={matchingMessages} />
+                ) : (
+                  <p>This search is incredibly basic, but it works.</p>
+                )}
+              </article>
+            </div>
+          );
+        }
+      }
+
+      const MessagesList = ({ messages }) => (
+        <ul className="MessagesList">
+          {messages.map(({ t, ...props }) => (
+            <Message {...props} t={t} key={t} />
+          ))}
+        </ul>
+      );
+
+      const Message = ({ m, u, t, c }) => (
+        <li className="Message">
+          <p>
+            <Channel id={c} /> - <Timestamp timestamp={t} />
+          </p>
+          <p>
+            <User id={u} /> {m}
+          </p>
+        </li>
+      );
+
+      const User = ({ id }) => (
+        <strong>@{window.search_data.users[id]}: </strong>
+      );
+
+      const Channel = ({ id }) => (
+        <span className="Channel">#{window.search_data.channels[id]}</span>
+      );
+
+      const Timestamp = ({ timestamp }) => {
+        const splitTs = timestamp.split(".") || [];
+        const jsTs = parseInt(`${splitTs[0]}${splitTs[1].slice(0, 3)}`, 10);
+        const date = new Date(jsTs);
+
+        return (
+          <span class="timestamp">
+            <span className="c-timestamp__label">{date.toLocaleString()}</span>
+          </span>
+        );
+      };
+
+      const Header = (props) => (
+        <header className="Header">
+          <h1>Message Search</h1>
+          <SearchBox {...props} />
+        </header>
+      );
+
+      const SearchBox = ({
+        onChange,
+        onSearchClear,
+        value,
+        searchInputRef,
+      }) => (
+        <div className="SearchBox">
+          <div className="Search">
+            <input
+              type="text"
+              value={value}
+              onChange={onChange}
+              ref={searchInputRef}
+              autoComplete="none"
+              autoCorrect="none"
+              autoCapitalize="none"
+              spellCheck="false"
+            />
+            <button
+              className="clear"
+              onClick={onSearchClear}
+              style={{ margin: 10 }}
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      );
+
+      ReactDOM.render(
+        React.createElement(App),
+        document.getElementById("search")
+      );
+    </script>
+    <div id="search">
+      Loading and indexing messages, please wait. If you have a large number of
+      messages, this might take a minute.
+    </div>
+  </body>
+</html>

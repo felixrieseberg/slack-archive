@@ -18,6 +18,7 @@ import {
   OUT_DIR,
   MESSAGES_JS_PATH,
 } from "./config.js";
+import { slackTimestampToJavaScriptTimestamp } from "./timestamp.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const users = getUsers();
@@ -30,8 +31,7 @@ interface TimestampProps {
   message: Message;
 }
 const Timestamp: React.FunctionComponent<TimestampProps> = (props) => {
-  const splitTs = props.message.ts?.split(".") || [];
-  const jsTs = parseInt(`${splitTs[0]}${splitTs[1].slice(0, 3)}`, 10);
+  const jsTs = slackTimestampToJavaScriptTimestamp(props.message.ts);
   const ts = format(jsTs, "PPPPpppp");
 
   return <span className="c-timestamp__label">{ts}</span>;

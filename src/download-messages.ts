@@ -20,7 +20,7 @@ function getWebClient() {
   return (_webClient = new WebClient(token));
 }
 
-const users: Users = getUsers();
+const users = getUsers();
 
 function isConversation(input: any): input is ConversationsHistoryResponse {
   return !!input.messages;
