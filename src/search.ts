@@ -27,12 +27,13 @@ import { getChannels, getMessages, getUsers } from "./load-data.js";
 //
 // For channelId, a message older than timestamp 0 but younger than timestamp1 is on page 1.
 // In our example above, the message with timestamp 6 is older than 5 but younger than 8.
-const INDEX_OF_PAGES: SearchPageIndex = {
-}
+const INDEX_OF_PAGES: SearchPageIndex = {};
 
 export function recordPage(channelId?: string, timestamp?: string) {
   if (!channelId || !timestamp) {
-    console.warn(`Search: Cannot record page: channelId: ${channelId} timestamp: ${timestamp}`);
+    console.warn(
+      `Search: Cannot record page: channelId: ${channelId} timestamp: ${timestamp}`
+    );
     return;
   }
 
@@ -47,6 +48,7 @@ export async function createSearch() {
   if (NO_SEARCH) return;
 
   const spinner = ora(`Creating search file...`).start();
+  spinner.render();
 
   await createSearchFile(spinner);
   await createSearchHTML();
@@ -61,7 +63,7 @@ async function createSearchFile(spinner: Ora) {
     channels: {},
     users: {},
     messages: {},
-    pages: INDEX_OF_PAGES
+    pages: INDEX_OF_PAGES,
   };
 
   // Users
@@ -79,8 +81,10 @@ async function createSearchFile(spinner: Ora) {
       continue;
     }
 
-    // Little debugging hack
-    if (i > 10) continue;
+    const name = getChannelName(channel);
+
+    spinner.text = `Creating search messages for channel ${name}`;
+    spinner.render();
 
     const messages = getMessages(channel.id).map((message) => {
       const searchMessage: SearchMessage = {
@@ -93,7 +97,7 @@ async function createSearchFile(spinner: Ora) {
     });
 
     result.messages![channel.id] = messages;
-    result.channels[channel.id] = getChannelName(channel);
+    result.channels[channel.id] = name;
   }
 
   const jsContent = `window.search_data = ${JSON.stringify(result)};`;
@@ -120,10 +124,7 @@ async function createSearchHTML() {
     getScript("minisearch@5.0.0/dist/umd/index.min.js")
   );
 
-  template = template.replace(
-    `<!-- Size -->`,
-    getSize()
-  );
+  template = template.replace(`<!-- Size -->`, getSize());
 
   fs.outputFileSync(SEARCH_PATH, template);
 }

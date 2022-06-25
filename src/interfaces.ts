@@ -13,7 +13,7 @@ export type Channel = SlackChannel;
 
 export type File = SlackFile;
 
-export type SearchPageIndex =  Record<string, Array<string>>;
+export type SearchPageIndex = Record<string, Array<string>>;
 
 export type SearchFile = {
   users: Record<string, string>; // userId -> userName

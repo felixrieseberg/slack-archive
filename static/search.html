@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Message Search</title>
     <link rel="stylesheet" href="html/style.css" />
-    
+
     <!-- react -->
     <!-- react-dom -->
     <!-- babel -->
@@ -23,7 +23,8 @@
           this.handleSearchClear = this.handleSearchClear.bind(this);
           this.searchMessages = this.searchMessages.bind(this);
           this.loadSearchData = this.loadSearchData.bind(this);
-          this.loadSearchDataWhenReady = this.loadSearchDataWhenReady.bind(this);
+          this.loadSearchDataWhenReady =
+            this.loadSearchDataWhenReady.bind(this);
 
           this.searchInputRef = React.createRef();
           this.state = {
@@ -131,8 +132,9 @@
         let href;
 
         if (channelPages) {
-          const page = channelPages.findIndex((pageTs) => pageTs < t);
-          href = `html/${c}-${page}.html#${t}`;
+          const index = channelPages.findIndex((pageTs) => pageTs < t);
+          const page = `${c}-${index}`;
+          href = `index.html?c=${encodeURIComponent(page)}&ts=${t}`;
         }
 
         const message = (
@@ -144,17 +146,17 @@
               <User id={u} /> {m}
             </p>
           </li>
-        )
+        );
 
         if (href) {
           return (
             <a href={href} target="_blank">
               {message}
             </a>
-          )
+          );
         } else {
           return message;
-        }       
+        }
       };
 
       const User = ({ id }) => (

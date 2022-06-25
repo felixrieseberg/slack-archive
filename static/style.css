@@ -104,7 +104,6 @@ audio, video {
 }
 
 .messages-list {
-  padding-top: 100px;
   padding-bottom: 20px;
 }
 
@@ -119,6 +118,14 @@ audio, video {
 .message-gutter {
   display: flex;
   margin: 10px;
+  scroll-margin-top: 120px;
+}
+
+.message-gutter:target {
+  background-color: #fafafa;
+  border: 2px solid #39113E;
+  padding: 10px;
+  border-radius: 5px; 
 }
 
 .message-gutter div:first-of-type {
@@ -137,13 +144,12 @@ audio, video {
 }
 
 .header {
-  position: fixed;
+  position: sticky;
   background: #fff;
   color: #616061;
   top: 0;
   left: 0;
   padding: 10px;
-  width: 100vw;
   min-height: 70px;
   border-bottom: 1px solid #E2E2E2;
   box-sizing: border-box;
@@ -169,7 +175,7 @@ audio, video {
 }
 
 .jumper {
-  overflow: scroll;
+  overflow: auto;
   max-width: calc(100vw - 20px);
 }
 
@@ -192,7 +198,7 @@ audio, video {
 
 #index {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 4px);
 }
 
 #channels {
@@ -254,7 +260,7 @@ audio, video {
 }
 
 #messages iframe {
-  height: 100vh;
+  height: 100%;
   width: calc(100vw - 250px);
   border: none;
 }

@@ -186,6 +186,10 @@ const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
   let name = channel.name || channel.id;
   let leadSymbol = <span># </span>;
 
+  if (getMessages(channel.id!).length === 0) {
+    return null;
+  }
+
   if (channel.is_im && (channel as any).user) {
     leadSymbol = <Avatar userId={(channel as any).user} />;
   }
@@ -241,6 +245,20 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
         <div id="messages">
           <iframe name="iframe" src={`html/${channels[0].id!}-0.html`} />
         </div>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            const urlSearchParams = new URLSearchParams(window.location.search);
+            const channelValue = urlSearchParams.get("c");
+            const tsValue = urlSearchParams.get("ts");
+            
+            if (channelValue) {
+              const iframe = document.getElementsByName('iframe')[0]
+              iframe.src = "html/" + decodeURIComponent(channelValue) + '.html' + '#' + (tsValue || '');
+            }
+            `,
+          }}
+        />
       </div>
     </HtmlPage>
   );
