@@ -10,7 +10,7 @@ export const config = {
 
 export const BASE_DIR = process.cwd();
 export const OUT_DIR = path.join(BASE_DIR, "slack-archive");
-export const TOKEN_FILE = path.join(BASE_DIR, ".token");
+export const TOKEN_FILE = path.join(OUT_DIR, ".token");
 export const DATA_DIR = path.join(OUT_DIR, "data");
 export const HTML_DIR = path.join(OUT_DIR, "html");
 export const FILES_DIR = path.join(HTML_DIR, "files");
