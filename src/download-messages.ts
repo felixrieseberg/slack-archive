@@ -2,6 +2,7 @@ import {
   ConversationsHistoryResponse,
   ConversationsListArguments,
   ConversationsListResponse,
+  retryPolicies,
   WebClient,
 } from "@slack/web-api";
 import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
@@ -18,7 +19,9 @@ function getWebClient() {
   if (_webClient) return _webClient;
 
   const { token } = config;
-  return (_webClient = new WebClient(token));
+  return (_webClient = new WebClient(token, {
+    retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
+  }));
 }
 
 const users = getUsers();
@@ -123,15 +126,6 @@ export async function downloadMessages(
       spinner.text = `Downloading ${
         i + 1
       }/${channelCount} ${name}: ${fetched} ${total})`;
-
-      // Download replies
-      if (page.messages && page.messages.length > 0) {
-        for (const message of page.messages) {
-          if (isThread(message)) {
-            (message as ArchiveMessage).replies = await downloadReplies(channel, message);
-          }
-        }
-      }
       
       result.unshift(...(page.messages || []));
     }
@@ -144,18 +138,53 @@ export async function downloadMessages(
 
 export async function downloadReplies(
   channel: Channel,
-  message: Message
+  message: ArchiveMessage
 ): Promise<Array<Message>> {
   if (!channel.id || !message.ts) {
     console.warn('Could not find channel or message id', channel, message);
     return [];
   }
 
+  if (!message.reply_count) {
+    console.warn('Message has no reply count', message);
+    return [];
+  }
+
+  // Do we already have all replies?
+  if (message.replies && message.replies.length >= message.reply_count) {
+    return message.replies;
+  }
+
+  const replies = message.replies || []
+  // Oldest is the last entry
+  const oldest = replies.length > 0 ? replies[replies.length - 1].ts : '0';
   const result = await getWebClient().conversations.replies({
     channel: channel.id,
-    ts: message.ts
+    ts: message.ts,
+    oldest
   })
 
   // First message is the parent
   return (result.messages || []).slice(1);
+}
+
+export async function downloadExtras(channel: Channel, messages: Array<ArchiveMessage>, users: Record<string, User | null>) {
+  const spinner = ora(
+    `Downloading threads and users for ${channel.name || channel.id}...`
+  ).start();
+  
+  let threads = 0;
+  for (const message of messages) {
+    if (isThread(message)) {
+      threads++;
+      spinner.text = `Downloading threads (${threads}) for ${channel.name || channel.id}...`;
+      message.replies = await downloadReplies(channel, message);
+    }
+
+    if (message.user && users[message.user] === undefined) {
+      users[message.user] = await downloadUser(message);
+    }
+  }
+
+  spinner.succeed(`Downloaded threads and users for ${channel.name || channel.id}...`);
 }

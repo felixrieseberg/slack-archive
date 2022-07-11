@@ -14,7 +14,7 @@ import {
   AUTOMATIC_MODE,
   DATE_FILE,
 } from "./config.js";
-import { downloadChannels, downloadUser } from "./download-messages.js";
+import { downloadChannels, downloadExtras } from "./download-messages.js";
 import { downloadMessages } from "./download-messages.js";
 import { downloadAvatars, downloadFilesForChannel } from "./download-files.js";
 import { createHtmlForChannels } from "./create-html.js";
@@ -218,11 +218,7 @@ export async function main() {
 
     // Download messages & users
     let result = await downloadMessages(channel, i, selectedChannels.length);
-    for (const message of result) {
-      if (message.user && users[message.user] === undefined) {
-        users[message.user] = await downloadUser(message);
-      }
-    }
+    await downloadExtras(channel, result, users);
 
     // Sort messages
     result = uniqBy(result, "ts");
