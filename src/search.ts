@@ -53,7 +53,7 @@ export async function createSearch() {
   await createSearchFile(spinner);
   await createSearchHTML();
 
-  spinner.stop();
+  spinner.stopAndPersist({ text: `Search file created` });
 }
 
 async function createSearchFile(spinner: Ora) {
