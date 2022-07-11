@@ -238,7 +238,7 @@ export async function main() {
   }
 
   // Create HTML
-  await createHtmlForChannels(selectedChannels);
+  await createHtmlForChannels(channels);
 
   // Create search file
   await createSearch();
