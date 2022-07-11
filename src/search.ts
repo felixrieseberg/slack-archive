@@ -9,7 +9,7 @@ import {
   SEARCH_TEMPLATE_PATH,
 } from "./config.js";
 import { SearchFile, SearchMessage, SearchPageIndex } from "./interfaces";
-import { getChannels, getMessages, getUsers } from "./load-data.js";
+import { getChannels, getMessages, getSearchFile, getUsers } from "./load-data.js";
 
 // Format:
 // channelId: [ timestamp0, timestamp1, timestamp2, ... ]
@@ -57,13 +57,14 @@ export async function createSearch() {
 }
 
 async function createSearchFile(spinner: Ora) {
+  const existingData = getSearchFile();
   const users = getUsers();
   const channels = getChannels();
   const result: SearchFile = {
     channels: {},
     users: {},
     messages: {},
-    pages: INDEX_OF_PAGES,
+    pages: { ...existingData.pages, ...INDEX_OF_PAGES },
   };
 
   // Users
