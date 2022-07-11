@@ -23,6 +23,7 @@ function findCliParameter(param: string) {
 export const AUTOMATIC_MODE = findCliParameter("--automatic");
 export const NO_BACKUP = findCliParameter("--no-backup");
 export const NO_SEARCH = findCliParameter("--no-search");
+export const ONLY_HTML = findCliParameter("--only-html");
 export const BASE_DIR = process.cwd();
 export const OUT_DIR = path.join(BASE_DIR, "slack-archive");
 export const TOKEN_FILE = path.join(OUT_DIR, ".token");

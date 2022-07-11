@@ -11,7 +11,7 @@ import esMain from "es-main";
 import slackMarkdown from "slack-markdown";
 
 import { getChannels, getMessages, getUsers } from "./load-data.js";
-import { Channel, Message } from "./interfaces.js";
+import { ArchiveMessage, Channel, Message } from "./interfaces.js";
 import {
   getHTMLFilePath,
   INDEX_PATH,
@@ -20,6 +20,7 @@ import {
 } from "./config.js";
 import { slackTimestampToJavaScriptTimestamp } from "./timestamp.js";
 import { recordPage } from "./search.js";
+import { isThread } from "./threads.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const users = getUsers();
@@ -111,12 +112,29 @@ const slackCallbacks = {
   user: ({ id }: { id: string }) => `@${users[id]?.name || id}`,
 };
 
+interface ParentMessageProps {
+  message: ArchiveMessage;
+  channelId: string;
+}
+const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
+  const { message, channelId } = props;
+  const isThread = !!message.replies
+  const hasFiles = !!message.files;
+
+  return (
+    <Message message={message} channelId={channelId}>
+      { hasFiles ? <Files message={message} channelId={channelId} /> : null }
+      { isThread ? <Thread message={message} channelId={channelId} /> : null }
+    </Message>
+  );
+};
+
 interface MessageProps {
-  message: Message;
+  message: ArchiveMessage;
   channelId: string;
 }
 const Message: React.FunctionComponent<MessageProps> = (props) => {
-  const { message, channelId } = props;
+  const { message } = props;
   const username = message.user
     ? users[message.user]?.name
     : message.user || "Unknown";
@@ -141,14 +159,33 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
             }),
           }}
         />
-        <Files message={message} channelId={channelId} />
+        {props.children}
       </div>
     </div>
   );
 };
 
+interface ThreadProps {
+  message: ArchiveMessage;
+  channelId: string;
+}
+const Thread: React.FunctionComponent<ThreadProps> = (props) => {
+  const { message, channelId } = props;
+  const { replies } = message;
+
+  if (!replies) return null;
+
+  const elements = replies.map((reply) => <Message key={reply.ts} message={reply} channelId={channelId} />);
+
+  return (
+    <div className="replies">
+      {...elements}
+    </div>
+  );
+};
+
 interface MessagesPageProps {
-  messages: Array<Message>;
+  messages: Array<ArchiveMessage>;
   channel: Channel;
   index: number;
   total: number;
@@ -159,7 +196,7 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
 
   // Newest message is first
   const messages = props.messages
-    .map((m) => <Message key={m.ts} message={m} channelId={channel.id!} />)
+    .map((m) => <ParentMessage key={m.ts} message={m} channelId={channel.id!} />)
     .reverse();
 
   if (messages.length === 0) {
@@ -371,7 +408,7 @@ function renderIndexPage() {
 
 function renderMessagesPage(
   channel: Channel,
-  messages: Array<Message>,
+  messages: Array<ArchiveMessage>,
   index: number,
   total: number,
   spinner: Ora

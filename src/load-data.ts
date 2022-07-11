@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 
-import { Channel, Message, Users } from "./interfaces.js";
+import { ArchiveMessage, Channel, Message, Users } from "./interfaces.js";
 import {
   CHANNELS_DATA_PATH,
   getChannelDataFilePath,
@@ -17,9 +17,9 @@ function getFile<T>(filePath: string, returnIfEmpty: T): T {
   return data;
 }
 
-export function getMessages(channelId: string): Array<Message> {
+export function getMessages(channelId: string): Array<ArchiveMessage> {
   const filePath = getChannelDataFilePath(channelId);
-  return getFile<Array<Message>>(filePath, []);
+  return getFile<Array<ArchiveMessage>>(filePath, []);
 }
 
 export function getUsers(): Users {

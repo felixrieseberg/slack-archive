@@ -132,6 +132,10 @@ audio, video {
   flex-shrink: 0;
 }
 
+.replies > .message-gutter {
+  /** Just here to be easily findable */
+}
+
 .sender {
   font-weight: 800;
   margin-right: 10px;

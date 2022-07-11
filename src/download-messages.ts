@@ -9,8 +9,9 @@ import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
 import ora from "ora";
 
 import { config } from "./config.js";
-import { Message, Users } from "./interfaces.js";
+import { ArchiveMessage, Message } from "./interfaces.js";
 import { getMessages, getUsers } from "./load-data.js";
+import { isThread } from "./threads.js";
 
 let _webClient: WebClient;
 function getWebClient() {
@@ -90,8 +91,8 @@ export async function downloadMessages(
   channel: Channel,
   i: number,
   channelCount: number
-): Promise<Array<Message>> {
-  let result: Array<Message> = [];
+): Promise<Array<ArchiveMessage>> {
+  let result: Array<ArchiveMessage> = [];
 
   if (!channel.id) {
     console.warn(`Channel without id`, channel);
@@ -122,6 +123,16 @@ export async function downloadMessages(
       spinner.text = `Downloading ${
         i + 1
       }/${channelCount} ${name}: ${fetched} ${total})`;
+
+      // Download replies
+      if (page.messages && page.messages.length > 0) {
+        for (const message of page.messages) {
+          if (isThread(message)) {
+            (message as ArchiveMessage).replies = await downloadReplies(channel, message);
+          }
+        }
+      }
+      
       result.unshift(...(page.messages || []));
     }
   }
@@ -129,4 +140,22 @@ export async function downloadMessages(
   spinner.succeed(`Downloaded ${i + 1}/${channelCount} ${name}...`);
 
   return result;
+}
+
+export async function downloadReplies(
+  channel: Channel,
+  message: Message
+): Promise<Array<Message>> {
+  if (!channel.id || !message.ts) {
+    console.warn('Could not find channel or message id', channel, message);
+    return [];
+  }
+
+  const result = await getWebClient().conversations.replies({
+    channel: channel.id,
+    ts: message.ts
+  })
+
+  // First message is the parent
+  return (result.messages || []).slice(1);
 }

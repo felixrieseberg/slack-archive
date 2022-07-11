@@ -7,6 +7,10 @@ export type User = SlackUser;
 
 export type Users = Record<string, User>;
 
+export interface ArchiveMessage extends SlackMessage {
+  replies?: Array<SlackMessage>;
+}
+
 export type Message = SlackMessage;
 
 export type Channel = SlackChannel;
