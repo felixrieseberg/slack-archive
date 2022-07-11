@@ -126,7 +126,7 @@ export async function downloadMessages(
       spinner.text = `Downloading ${
         i + 1
       }/${channelCount} ${name}: ${fetched} ${total})`;
-      
+
       result.unshift(...(page.messages || []));
     }
   }
@@ -141,12 +141,12 @@ export async function downloadReplies(
   message: ArchiveMessage
 ): Promise<Array<Message>> {
   if (!channel.id || !message.ts) {
-    console.warn('Could not find channel or message id', channel, message);
+    console.warn("Could not find channel or message id", channel, message);
     return [];
   }
 
   if (!message.reply_count) {
-    console.warn('Message has no reply count', message);
+    console.warn("Message has no reply count", message);
     return [];
   }
 
@@ -155,29 +155,35 @@ export async function downloadReplies(
     return message.replies;
   }
 
-  const replies = message.replies || []
+  const replies = message.replies || [];
   // Oldest is the last entry
-  const oldest = replies.length > 0 ? replies[replies.length - 1].ts : '0';
+  const oldest = replies.length > 0 ? replies[replies.length - 1].ts : "0";
   const result = await getWebClient().conversations.replies({
     channel: channel.id,
     ts: message.ts,
-    oldest
-  })
+    oldest,
+  });
 
   // First message is the parent
   return (result.messages || []).slice(1);
 }
 
-export async function downloadExtras(channel: Channel, messages: Array<ArchiveMessage>, users: Record<string, User | null>) {
+export async function downloadExtras(
+  channel: Channel,
+  messages: Array<ArchiveMessage>,
+  users: Record<string, User | null>
+) {
   const spinner = ora(
     `Downloading threads and users for ${channel.name || channel.id}...`
   ).start();
-  
+
   let threads = 0;
   for (const message of messages) {
     if (isThread(message)) {
       threads++;
-      spinner.text = `Downloading threads (${threads}) for ${channel.name || channel.id}...`;
+      spinner.text = `Downloading threads (${threads}) for ${
+        channel.name || channel.id
+      }...`;
       message.replies = await downloadReplies(channel, message);
     }
 
@@ -186,5 +192,7 @@ export async function downloadExtras(channel: Channel, messages: Array<ArchiveMe
     }
   }
 
-  spinner.succeed(`Downloaded threads and users for ${channel.name || channel.id}...`);
+  spinner.succeed(
+    `Downloaded threads and users for ${channel.name || channel.id}...`
+  );
 }

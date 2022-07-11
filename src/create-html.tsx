@@ -118,13 +118,13 @@ interface ParentMessageProps {
 }
 const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
   const { message, channelId } = props;
-  const isThread = !!message.replies
+  const isThread = !!message.replies;
   const hasFiles = !!message.files;
 
   return (
     <Message message={message} channelId={channelId}>
-      { hasFiles ? <Files message={message} channelId={channelId} /> : null }
-      { isThread ? <Thread message={message} channelId={channelId} /> : null }
+      {hasFiles ? <Files message={message} channelId={channelId} /> : null}
+      {isThread ? <Thread message={message} channelId={channelId} /> : null}
     </Message>
   );
 };
@@ -175,13 +175,11 @@ const Thread: React.FunctionComponent<ThreadProps> = (props) => {
 
   if (!replies) return null;
 
-  const elements = replies.map((reply) => <Message key={reply.ts} message={reply} channelId={channelId} />);
+  const elements = replies.map((reply) => (
+    <Message key={reply.ts} message={reply} channelId={channelId} />
+  ));
 
-  return (
-    <div className="replies">
-      {...elements}
-    </div>
-  );
+  return <div className="replies">{...elements}</div>;
 };
 
 interface MessagesPageProps {
@@ -196,7 +194,9 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
 
   // Newest message is first
   const messages = props.messages
-    .map((m) => <ParentMessage key={m.ts} message={m} channelId={channel.id!} />)
+    .map((m) => (
+      <ParentMessage key={m.ts} message={m} channelId={channel.id!} />
+    ))
     .reverse();
 
   if (messages.length === 0) {
@@ -283,8 +283,8 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
           <iframe name="iframe" src={`html/${channels[0].id!}-0.html`} />
         </div>
         <script
-          dangerouslySetInnerHTML={{ __html:
-            `
+          dangerouslySetInnerHTML={{
+            __html: `
             const urlSearchParams = new URLSearchParams(window.location.search);
             const channelValue = urlSearchParams.get("c");
             const tsValue = urlSearchParams.get("ts");
@@ -293,7 +293,7 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
               const iframe = document.getElementsByName('iframe')[0]
               iframe.src = "html/" + decodeURIComponent(channelValue) + '.html' + '#' + (tsValue || '');
             }
-            `
+            `,
           }}
         />
       </div>
