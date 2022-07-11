@@ -175,7 +175,7 @@ export async function downloadExtras(
   ).start();
 
   let processedThreads = 0;
-  const totalThreads = messages.filter(isThread).length; 
+  const totalThreads = messages.filter(isThread).length;
   for (const message of messages) {
     if (isThread(message)) {
       processedThreads++;

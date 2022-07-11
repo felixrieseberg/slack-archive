@@ -1,6 +1,12 @@
 import fs from "fs-extra";
 
-import { ArchiveMessage, Channel, Message, SearchFile, Users } from "./interfaces.js";
+import {
+  ArchiveMessage,
+  Channel,
+  Message,
+  SearchFile,
+  Users,
+} from "./interfaces.js";
 import {
   CHANNELS_DATA_PATH,
   getChannelDataFilePath,
@@ -39,7 +45,7 @@ export function getSearchFile(): SearchFile {
   }
 
   const contents = fs.readFileSync(SEARCH_DATA_PATH, "utf8");
-  
+
   // See search.ts, the file is actually JS (not JSON)
   return JSON.parse(contents.slice(21, contents.length - 1));
 }

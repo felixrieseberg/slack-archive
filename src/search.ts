@@ -9,7 +9,12 @@ import {
   SEARCH_TEMPLATE_PATH,
 } from "./config.js";
 import { SearchFile, SearchMessage, SearchPageIndex } from "./interfaces";
-import { getChannels, getMessages, getSearchFile, getUsers } from "./load-data.js";
+import {
+  getChannels,
+  getMessages,
+  getSearchFile,
+  getUsers,
+} from "./load-data.js";
 
 // Format:
 // channelId: [ timestamp0, timestamp1, timestamp2, ... ]
