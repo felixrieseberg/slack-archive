@@ -2,7 +2,6 @@ import {
   ConversationsHistoryResponse,
   ConversationsListArguments,
   ConversationsListResponse,
-  retryPolicies,
   WebClient,
 } from "@slack/web-api";
 import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
@@ -19,9 +18,7 @@ function getWebClient() {
   if (_webClient) return _webClient;
 
   const { token } = config;
-  return (_webClient = new WebClient(token, {
-    retryConfig: retryPolicies.fiveRetriesInFiveMinutes,
-  }));
+  return (_webClient = new WebClient(token));
 }
 
 const users = getUsers();
@@ -177,11 +174,12 @@ export async function downloadExtras(
     `Downloading threads and users for ${channel.name || channel.id}...`
   ).start();
 
-  let threads = 0;
+  let processedThreads = 0;
+  const totalThreads = messages.filter(isThread).length; 
   for (const message of messages) {
     if (isThread(message)) {
-      threads++;
-      spinner.text = `Downloading threads (${threads}) for ${
+      processedThreads++;
+      spinner.text = `Downloading threads (${processedThreads}/${totalThreads}) for ${
         channel.name || channel.id
       }...`;
       message.replies = await downloadReplies(channel, message);
