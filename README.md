@@ -54,15 +54,19 @@ As a redirect URL, enter something random that doesn't actually exist. For insta
 https://notarealurl.com/
 ```
 
-Then, add the following `Scopes`:
+Then, add the following `User Token Scopes`:
 
  * channels:history
  * channels:read
  * files:read
  * groups:history
+ * groups:read
  * im:history
+ * im:read
  * mpim:history
+ * mpim:read
  * remote_files:read
+ * users:read
 
 Finally, head back to `Basic Information` and make a note of your app's `client
 id` and `client secret`. We'll need both later.
