@@ -21,6 +21,7 @@ import { createHtmlForChannels } from "./create-html.js";
 import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
 import { isValid, parseISO } from "date-fns";
 import { createSearch } from "./search.js";
+import { write, writeAndMerge } from "./data-write.js";
 
 const { prompt } = inquirer;
 
@@ -113,31 +114,6 @@ async function selectChannelTypes(): Promise<Array<string>> {
   return result["channel-types"];
 }
 
-function writeAndMerge(filePath: string, newData: any) {
-  let dataToWrite = newData;
-
-  if (fs.existsSync(filePath)) {
-    const oldData = fs.readJSONSync(filePath);
-
-    if (Array.isArray(oldData)) {
-      dataToWrite = [...oldData, ...newData];
-
-      if (newData && newData[0] && newData[0].id) {
-        dataToWrite = uniqBy(dataToWrite, (v: any) => v.id);
-      }
-    } else if (typeof newData === "object") {
-      dataToWrite = { ...oldData, ...newData };
-    } else {
-      console.error(`writeAndMerge: Did not understand type of data`, {
-        filePath,
-        newData,
-      });
-    }
-  }
-
-  fs.outputFileSync(filePath, JSON.stringify(dataToWrite, undefined, 2));
-}
-
 async function getToken() {
   if (config.token) {
     console.log(`Using token ${config.token}`);
@@ -161,9 +137,9 @@ async function getToken() {
   config.token = result.token;
 }
 
-function writeLastSuccessfulArchive() {
+async function writeLastSuccessfulArchive() {
   const now = new Date();
-  fs.outputFileSync(DATE_FILE, now.toISOString());
+  write(DATE_FILE, now.toISOString());
 }
 
 function getLastSuccessfulRun() {
@@ -198,17 +174,16 @@ export async function main() {
   await getToken();
   await createBackup();
 
-  const users: Record<string, User | null> = {};
+  const users: Record<string, User> = {};
   const channelTypes = (await selectChannelTypes()).join(",");
 
   console.log(`Downloading channels...\n`);
-  const channels = await downloadChannels({ types: channelTypes });
+  const channels = await downloadChannels({ types: channelTypes }, users);
   const selectedChannels = await selectChannels(channels);
 
   // Do we want to merge data?
   await selectMergeFiles();
-
-  writeAndMerge(CHANNELS_DATA_PATH, selectedChannels);
+  await writeAndMerge(CHANNELS_DATA_PATH, selectedChannels);
 
   for (const [i, channel] of selectedChannels.entries()) {
     if (!channel.id) {
@@ -217,7 +192,12 @@ export async function main() {
     }
 
     // Download messages & users
-    let result = await downloadMessages(channel, i, selectedChannels.length);
+    let result = await downloadMessages(
+      channel,
+      i,
+      selectedChannels.length,
+      users
+    );
     await downloadExtras(channel, result, users);
 
     // Sort messages
@@ -226,7 +206,7 @@ export async function main() {
       return parseFloat(b.ts || "0") - parseFloat(a.ts || "0");
     });
 
-    writeAndMerge(USERS_DATA_PATH, users);
+    await writeAndMerge(USERS_DATA_PATH, users);
     fs.outputFileSync(
       getChannelDataFilePath(channel.id),
       JSON.stringify(result, undefined, 2)
@@ -246,7 +226,7 @@ export async function main() {
   await deleteBackup();
   await deleteOlderBackups();
 
-  writeLastSuccessfulArchive();
+  await writeLastSuccessfulArchive();
 
   console.log(`All done.`);
 }

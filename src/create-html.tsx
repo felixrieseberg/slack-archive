@@ -10,8 +10,8 @@ import { fileURLToPath } from "url";
 import esMain from "es-main";
 import slackMarkdown from "slack-markdown";
 
-import { getChannels, getMessages, getUsers } from "./load-data.js";
-import { ArchiveMessage, Channel, Message } from "./interfaces.js";
+import { getChannels, getMessages, getUsers } from "./data-load.js";
+import { ArchiveMessage, Channel, Message, Users } from "./interfaces.js";
 import {
   getHTMLFilePath,
   INDEX_PATH,
@@ -20,10 +20,9 @@ import {
 } from "./config.js";
 import { slackTimestampToJavaScriptTimestamp } from "./timestamp.js";
 import { recordPage } from "./search.js";
-import { isThread } from "./threads.js";
+import { write } from "./data-write.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
-const users = getUsers();
 const MESSAGE_CHUNK = 1000;
 
 // Little hack to switch between ./index.html and ./html/...
@@ -94,9 +93,9 @@ const Files: React.FunctionComponent<FilesProps> = (props) => {
 
 interface AvatarProps {
   userId?: string;
+  users: Users;
 }
-const Avatar: React.FunctionComponent<AvatarProps> = (props) => {
-  const { userId } = props;
+const Avatar: React.FunctionComponent<AvatarProps> = ({ userId, users }) => {
   if (!userId) return null;
 
   const user = users[userId];
@@ -108,23 +107,22 @@ const Avatar: React.FunctionComponent<AvatarProps> = (props) => {
   return <img className="avatar" src={src} />;
 };
 
-const slackCallbacks = {
-  user: ({ id }: { id: string }) => `@${users[id]?.name || id}`,
-};
-
 interface ParentMessageProps {
   message: ArchiveMessage;
   channelId: string;
+  users: Users;
 }
 const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
-  const { message, channelId } = props;
+  const { message, channelId, users } = props;
   const isThread = !!message.replies;
   const hasFiles = !!message.files;
 
   return (
-    <Message message={message} channelId={channelId}>
+    <Message message={message} channelId={channelId} users={users}>
       {hasFiles ? <Files message={message} channelId={channelId} /> : null}
-      {isThread ? <Thread message={message} channelId={channelId} /> : null}
+      {isThread ? (
+        <Thread message={message} channelId={channelId} users={users} />
+      ) : null}
     </Message>
   );
 };
@@ -132,17 +130,21 @@ const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
 interface MessageProps {
   message: ArchiveMessage;
   channelId: string;
+  users: Users;
 }
 const Message: React.FunctionComponent<MessageProps> = (props) => {
-  const { message } = props;
+  const { message, users, channelId } = props;
   const username = message.user
     ? users[message.user]?.name
     : message.user || "Unknown";
+  const slackCallbacks = {
+    user: ({ id }: { id: string }) => `@${users[id]?.name || id}`,
+  };
 
   return (
     <div className="message-gutter" id={message.ts}>
       <div className="" data-stringify-ignore="true">
-        <Avatar userId={message.user} />
+        <Avatar userId={message.user} users={users} />
       </div>
       <div className="">
         <span className="sender">{username}</span>
@@ -168,15 +170,21 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
 interface ThreadProps {
   message: ArchiveMessage;
   channelId: string;
+  users: Users;
 }
 const Thread: React.FunctionComponent<ThreadProps> = (props) => {
-  const { message, channelId } = props;
+  const { message, channelId, users } = props;
   const { replies } = message;
 
   if (!replies) return null;
 
   const elements = replies.map((reply) => (
-    <Message key={reply.ts} message={reply} channelId={channelId} />
+    <Message
+      key={reply.ts}
+      message={reply}
+      channelId={channelId}
+      users={users}
+    />
   ));
 
   return <div className="replies">{...elements}</div>;
@@ -187,15 +195,21 @@ interface MessagesPageProps {
   channel: Channel;
   index: number;
   total: number;
+  users: Users;
 }
 const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
-  const { channel, index, total } = props;
+  const { channel, index, total, users } = props;
   const messagesJs = fs.readFileSync(MESSAGES_JS_PATH, "utf8");
 
   // Newest message is first
   const messages = props.messages
     .map((m) => (
-      <ParentMessage key={m.ts} message={m} channelId={channel.id!} />
+      <ParentMessage
+        key={m.ts}
+        message={m}
+        channelId={channel.id!}
+        users={users}
+      />
     ))
     .reverse();
 
@@ -206,7 +220,7 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
   return (
     <HtmlPage>
       <div style={{ paddingLeft: 10 }}>
-        <Header index={index} total={total} channel={channel} />
+        <Header index={index} total={total} channel={channel} users={users} />
         <div className="messages-list">{messages}</div>
         <script dangerouslySetInnerHTML={{ __html: messagesJs }} />
       </div>
@@ -216,19 +230,17 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
 
 interface ChannelLinkProps {
   channel: Channel;
+  users: Users;
 }
 const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
   channel,
+  users,
 }) => {
   let name = channel.name || channel.id;
   let leadSymbol = <span># </span>;
 
-  if (getMessages(channel.id!).length === 0) {
-    return null;
-  }
-
   if (channel.is_im && (channel as any).user) {
-    leadSymbol = <Avatar userId={(channel as any).user} />;
+    leadSymbol = <Avatar userId={(channel as any).user} users={users} />;
   }
 
   if (channel.is_mpim) {
@@ -247,26 +259,33 @@ const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
 
 interface IndexPageProps {
   channels: Array<Channel>;
+  users: Users;
 }
 const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
-  const { channels } = props;
+  const { channels, users } = props;
   const sortedChannels = sortBy(channels, "name");
 
   const publicChannels = sortedChannels
     .filter(
       (channel) => !channel.is_private && !channel.is_mpim && !channel.is_im
     )
-    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+    .map((channel) => (
+      <ChannelLink key={channel.id} channel={channel} users={users} />
+    ));
 
   const privateChannels = sortedChannels
     .filter(
       (channel) => channel.is_private && !channel.is_im && !channel.is_mpim
     )
-    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+    .map((channel) => (
+      <ChannelLink key={channel.id} channel={channel} users={users} />
+    ));
 
   const dmChannels = sortedChannels
     .filter((channel) => channel.is_im || channel.is_mpim)
-    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+    .map((channel) => (
+      <ChannelLink key={channel.id} channel={channel} users={users} />
+    ));
 
   return (
     <HtmlPage>
@@ -320,9 +339,10 @@ interface HeaderProps {
   index: number;
   total: number;
   channel: Channel;
+  users: Users;
 }
 const Header: React.FunctionComponent<HeaderProps> = (props) => {
-  const { channel, index, total } = props;
+  const { channel, index, total, users } = props;
   let created;
 
   if (!channel.is_im && !channel.is_mpim) {
@@ -398,10 +418,10 @@ const Pagination: React.FunctionComponent<PaginationProps> = (props) => {
   );
 };
 
-function renderIndexPage() {
+async function renderIndexPage({ users }: { users: Users }) {
   base = "html/";
-  const channels = getChannels();
-  const page = <IndexPage channels={channels} />;
+  const channels = await getChannels();
+  const page = <IndexPage channels={channels} users={users} />;
 
   return renderAndWrite(page, INDEX_PATH);
 }
@@ -411,7 +431,8 @@ function renderMessagesPage(
   messages: Array<ArchiveMessage>,
   index: number,
   total: number,
-  spinner: Ora
+  spinner: Ora,
+  users: Users
 ) {
   const page = (
     <MessagesPage
@@ -419,6 +440,7 @@ function renderMessagesPage(
       messages={messages}
       index={index}
       total={total}
+      users={users}
     />
   );
 
@@ -436,52 +458,66 @@ function renderMessagesPage(
   return renderAndWrite(page, filePath);
 }
 
-function renderAndWrite(page: JSX.Element, filePath: string) {
+async function renderAndWrite(page: JSX.Element, filePath: string) {
   const html = ReactDOMServer.renderToStaticMarkup(page);
   const htmlWDoc = "<!DOCTYPE html>" + html;
 
-  fs.writeFileSync(filePath, htmlWDoc);
+  await write(filePath, htmlWDoc);
 }
 
-export function createHtmlForChannel(
-  channel: Channel,
-  i: number,
-  total: number
-) {
-  const messages = getMessages(channel.id!);
+async function createHtmlForChannel({
+  channel,
+  i,
+  total,
+  users,
+}: {
+  channel: Channel;
+  i: number;
+  total: number;
+  users: Users;
+}) {
+  const messages = await getMessages(channel.id!);
   const chunks = chunk(messages, MESSAGE_CHUNK);
   const spinner = ora(
     `Rendering HTML for ${i + 1}/${total} ${channel.name || channel.id}`
   ).start();
 
   if (chunks.length === 0) {
-    renderMessagesPage(channel, [], 0, chunks.length, spinner);
+    await renderMessagesPage(channel, [], 0, chunks.length, spinner, users);
   }
 
-  chunks.forEach((chunk, chunkI) => {
-    renderMessagesPage(channel, chunk, chunkI, chunks.length, spinner);
-  });
+  for (const [chunkI, chunk] of chunks.entries()) {
+    await renderMessagesPage(
+      channel,
+      chunk,
+      chunkI,
+      chunks.length,
+      spinner,
+      users
+    );
+  }
 
   spinner.succeed(
     `Rendered HTML for ${i + 1}/${total} ${channel.name || channel.id}`
   );
 }
 
-export function createHtmlForChannels(
-  channels: Array<Channel> = getChannels()
-) {
+export async function createHtmlForChannels(channels: Array<Channel> = []) {
   console.log(`Creating HTML files...`);
 
-  for (const [i, channel] of channels.entries()) {
+  const _channels = channels.length === 0 ? await getChannels() : channels;
+  const users = await getUsers();
+
+  for (const [i, channel] of _channels.entries()) {
     if (!channel.id) {
       console.warn(`Can't create HTML for channel: No id found`, channel);
       continue;
     }
 
-    createHtmlForChannel(channel, i, channels.length);
+    await createHtmlForChannel({ channel, i, total: _channels.length, users });
   }
 
-  renderIndexPage();
+  await renderIndexPage({ users });
 
   // Copy in fonts & css
   fs.copySync(path.join(_dirname, "../static"), path.join(OUT_DIR, "html/"));

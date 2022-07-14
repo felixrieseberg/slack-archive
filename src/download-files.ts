@@ -10,7 +10,7 @@ import {
   getChannelUploadFilePath,
   config,
 } from "./config.js";
-import { getChannels, getMessages, getUsers } from "./load-data.js";
+import { getChannels, getMessages, getUsers } from "./data-load.js";
 
 async function downloadURL(
   url: string,
@@ -68,8 +68,8 @@ async function downloadFile(
 }
 
 export async function downloadFilesForChannel(channelId: string) {
-  const messages = getMessages(channelId);
-  const channels = getChannels();
+  const messages = await getMessages(channelId);
+  const channels = await getChannels();
   const channel = channels.find(({ id }) => id === channelId);
   const fileMessages = messages.filter((m) => (m.files?.length || 0) > 0);
 
@@ -93,7 +93,7 @@ export async function downloadFilesForChannel(channelId: string) {
 }
 
 export async function downloadAvatars() {
-  const users = getUsers();
+  const users = await getUsers();
   const userIds = Object.keys(users);
 
   for (const userId of userIds) {
@@ -133,7 +133,7 @@ async function main() {
 
   if (lastArg === "channels") {
     console.log(`Downloading files for channels`);
-    const channels = getChannels();
+    const channels = await getChannels();
 
     for (const channel of channels) {
       if (channel.id) {

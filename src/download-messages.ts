@@ -9,8 +9,8 @@ import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
 import ora from "ora";
 
 import { config } from "./config.js";
-import { ArchiveMessage, Message } from "./interfaces.js";
-import { getMessages, getUsers } from "./load-data.js";
+import { ArchiveMessage, Message, Users } from "./interfaces.js";
+import { getMessages } from "./data-load.js";
 import { isThread } from "./threads.js";
 
 let _webClient: WebClient;
@@ -21,8 +21,6 @@ function getWebClient() {
   return (_webClient = new WebClient(token));
 }
 
-const users = getUsers();
-
 function isConversation(input: any): input is ConversationsHistoryResponse {
   return !!input.messages;
 }
@@ -31,7 +29,10 @@ function isChannels(input: any): input is ConversationsListResponse {
   return !!input.channels;
 }
 
-export async function downloadUser(item: Message | any): Promise<User | null> {
+async function downloadUser(
+  item: Message | any,
+  users: Users
+): Promise<User | null> {
   if (!item.user) return null;
   if (users[item.user]) return users[item.user];
 
@@ -45,13 +46,14 @@ export async function downloadUser(item: Message | any): Promise<User | null> {
 
   if (user) {
     return (users[item.user] = user);
-  } else {
-    return null;
   }
+
+  return null;
 }
 
 export async function downloadChannels(
-  options?: ConversationsListArguments
+  options: ConversationsListArguments,
+  users: Users
 ): Promise<Array<Channel>> {
   const channels = [];
 
@@ -70,7 +72,7 @@ export async function downloadChannels(
 
       for (const channel of pageChannels) {
         if (channel.is_im) {
-          const user = await downloadUser(channel);
+          const user = await downloadUser(channel, users);
           const realUserName = user?.real_name ? ` (${user?.real_name})` : "";
           channel.name = channel.name || `${user?.name}${realUserName}`;
         }
@@ -99,7 +101,7 @@ export async function downloadMessages(
     return result;
   }
 
-  for (const message of getMessages(channel.id)) {
+  for (const message of await getMessages(channel.id)) {
     result.push(message);
   }
 
@@ -168,7 +170,7 @@ export async function downloadReplies(
 export async function downloadExtras(
   channel: Channel,
   messages: Array<ArchiveMessage>,
-  users: Record<string, User | null>
+  users: Users
 ) {
   const spinner = ora(
     `Downloading threads and users for ${channel.name || channel.id}...`
@@ -186,7 +188,10 @@ export async function downloadExtras(
     }
 
     if (message.user && users[message.user] === undefined) {
-      users[message.user] = await downloadUser(message);
+      const usr = await downloadUser(message, users);
+      if (usr) {
+        users[message.user] = usr;
+      }
     }
   }
 

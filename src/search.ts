@@ -14,7 +14,7 @@ import {
   getMessages,
   getSearchFile,
   getUsers,
-} from "./load-data.js";
+} from "./data-load.js";
 
 // Format:
 // channelId: [ timestamp0, timestamp1, timestamp2, ... ]
@@ -62,9 +62,9 @@ export async function createSearch() {
 }
 
 async function createSearchFile(spinner: Ora) {
-  const existingData = getSearchFile();
-  const users = getUsers();
-  const channels = getChannels();
+  const existingData = await getSearchFile();
+  const users = await getUsers();
+  const channels = await getChannels();
   const result: SearchFile = {
     channels: {},
     users: {},
@@ -92,7 +92,7 @@ async function createSearchFile(spinner: Ora) {
     spinner.text = `Creating search messages for channel ${name}`;
     spinner.render();
 
-    const messages = getMessages(channel.id).map((message) => {
+    const messages = (await getMessages(channel.id)).map((message) => {
       const searchMessage: SearchMessage = {
         m: message.text,
         u: message.user,
