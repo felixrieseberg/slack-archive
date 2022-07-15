@@ -3,6 +3,7 @@ import inquirer from "inquirer";
 import fs from "fs-extra";
 import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
 import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
+import ora from "ora";
 
 import {
   CHANNELS_DATA_PATH,
@@ -22,6 +23,7 @@ import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
 import { isValid, parseISO } from "date-fns";
 import { createSearch } from "./search.js";
 import { write, writeAndMerge } from "./data-write.js";
+import { getUsers } from "./data-load.js";
 
 const { prompt } = inquirer;
 
@@ -174,7 +176,7 @@ export async function main() {
   await getToken();
   await createBackup();
 
-  const users: Record<string, User> = {};
+  const users: Record<string, User> = await getUsers();
   const channelTypes = (await selectChannelTypes()).join(",");
 
   console.log(`Downloading channels...\n`);
@@ -195,12 +197,19 @@ export async function main() {
     let result = await downloadMessages(
       channel,
       i,
-      selectedChannels.length,
-      users
+      selectedChannels.length
     );
     await downloadExtras(channel, result, users);
 
+    // Download files
+    await downloadFilesForChannel(channel.id!);
+    await downloadAvatars();
+
     // Sort messages
+    const spinner = ora(
+      `Saving message data for ${channel.name || channel.id} to disk`
+    ).start();
+
     result = uniqBy(result, "ts");
     result = result.sort((a, b) => {
       return parseFloat(b.ts || "0") - parseFloat(a.ts || "0");
@@ -212,9 +221,7 @@ export async function main() {
       JSON.stringify(result, undefined, 2)
     );
 
-    // Download files
-    await downloadFilesForChannel(channel.id!);
-    await downloadAvatars();
+    spinner.succeed(`Saved message data for ${channel.name || channel.id}`);
   }
 
   // Create HTML
