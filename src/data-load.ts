@@ -19,11 +19,20 @@ async function getFile<T>(filePath: string, returnIfEmpty: T): Promise<T> {
   return data;
 }
 
+export const messagesCache: Record<string, Array<ArchiveMessage>> = {};
+
 export async function getMessages(
-  channelId: string
+  channelId: string,
+  cachedOk: boolean = false
 ): Promise<Array<ArchiveMessage>> {
+  if (cachedOk && messagesCache[channelId]) {
+    return messagesCache[channelId];
+  }
+
   const filePath = getChannelDataFilePath(channelId);
-  return getFile<Array<ArchiveMessage>>(filePath, []);
+  messagesCache[channelId] = await getFile<Array<ArchiveMessage>>(filePath, []);
+  
+  return messagesCache[channelId];
 }
 
 export async function getUsers(): Promise<Users> {

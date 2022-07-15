@@ -25,6 +25,11 @@ import { write } from "./data-write.js";
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const MESSAGE_CHUNK = 1000;
 
+// This used to be a prop on the components, but passing it around
+// was surprisingly slow. Global variables are cool again!
+// Set by createHtmlForChannels().
+let users: Users = {};
+
 // Little hack to switch between ./index.html and ./html/...
 let base = "";
 
@@ -93,9 +98,8 @@ const Files: React.FunctionComponent<FilesProps> = (props) => {
 
 interface AvatarProps {
   userId?: string;
-  users: Users;
 }
-const Avatar: React.FunctionComponent<AvatarProps> = ({ userId, users }) => {
+const Avatar: React.FunctionComponent<AvatarProps> = ({ userId }) => {
   if (!userId) return null;
 
   const user = users[userId];
@@ -110,18 +114,17 @@ const Avatar: React.FunctionComponent<AvatarProps> = ({ userId, users }) => {
 interface ParentMessageProps {
   message: ArchiveMessage;
   channelId: string;
-  users: Users;
 }
 const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
-  const { message, channelId, users } = props;
+  const { message, channelId } = props;
   const isThread = !!message.replies;
   const hasFiles = !!message.files;
 
   return (
-    <Message message={message} channelId={channelId} users={users}>
+    <Message message={message} channelId={channelId}>
       {hasFiles ? <Files message={message} channelId={channelId} /> : null}
       {isThread ? (
-        <Thread message={message} channelId={channelId} users={users} />
+        <Thread message={message} channelId={channelId} />
       ) : null}
     </Message>
   );
@@ -130,10 +133,9 @@ const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
 interface MessageProps {
   message: ArchiveMessage;
   channelId: string;
-  users: Users;
 }
 const Message: React.FunctionComponent<MessageProps> = (props) => {
-  const { message, users, channelId } = props;
+  const { message } = props;
   const username = message.user
     ? users[message.user]?.name
     : message.user || "Unknown";
@@ -144,7 +146,7 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
   return (
     <div className="message-gutter" id={message.ts}>
       <div className="" data-stringify-ignore="true">
-        <Avatar userId={message.user} users={users} />
+        <Avatar userId={message.user} />
       </div>
       <div className="">
         <span className="sender">{username}</span>
@@ -170,10 +172,9 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
 interface ThreadProps {
   message: ArchiveMessage;
   channelId: string;
-  users: Users;
 }
 const Thread: React.FunctionComponent<ThreadProps> = (props) => {
-  const { message, channelId, users } = props;
+  const { message, channelId } = props;
   const { replies } = message;
 
   if (!replies) return null;
@@ -183,7 +184,6 @@ const Thread: React.FunctionComponent<ThreadProps> = (props) => {
       key={reply.ts}
       message={reply}
       channelId={channelId}
-      users={users}
     />
   ));
 
@@ -195,10 +195,9 @@ interface MessagesPageProps {
   channel: Channel;
   index: number;
   total: number;
-  users: Users;
 }
 const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
-  const { channel, index, total, users } = props;
+  const { channel, index, total } = props;
   const messagesJs = fs.readFileSync(MESSAGES_JS_PATH, "utf8");
 
   // Newest message is first
@@ -208,7 +207,6 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
         key={m.ts}
         message={m}
         channelId={channel.id!}
-        users={users}
       />
     ))
     .reverse();
@@ -220,7 +218,7 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
   return (
     <HtmlPage>
       <div style={{ paddingLeft: 10 }}>
-        <Header index={index} total={total} channel={channel} users={users} />
+        <Header index={index} total={total} channel={channel} />
         <div className="messages-list">{messages}</div>
         <script dangerouslySetInnerHTML={{ __html: messagesJs }} />
       </div>
@@ -230,17 +228,15 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
 
 interface ChannelLinkProps {
   channel: Channel;
-  users: Users;
 }
 const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
   channel,
-  users,
 }) => {
   let name = channel.name || channel.id;
   let leadSymbol = <span># </span>;
 
   if (channel.is_im && (channel as any).user) {
-    leadSymbol = <Avatar userId={(channel as any).user} users={users} />;
+    leadSymbol = <Avatar userId={(channel as any).user} />;
   }
 
   if (channel.is_mpim) {
@@ -259,10 +255,9 @@ const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
 
 interface IndexPageProps {
   channels: Array<Channel>;
-  users: Users;
 }
 const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
-  const { channels, users } = props;
+  const { channels } = props;
   const sortedChannels = sortBy(channels, "name");
 
   const publicChannels = sortedChannels
@@ -270,7 +265,7 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
       (channel) => !channel.is_private && !channel.is_mpim && !channel.is_im
     )
     .map((channel) => (
-      <ChannelLink key={channel.id} channel={channel} users={users} />
+      <ChannelLink key={channel.id} channel={channel} />
     ));
 
   const privateChannels = sortedChannels
@@ -278,13 +273,13 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
       (channel) => channel.is_private && !channel.is_im && !channel.is_mpim
     )
     .map((channel) => (
-      <ChannelLink key={channel.id} channel={channel} users={users} />
+      <ChannelLink key={channel.id} channel={channel} />
     ));
 
   const dmChannels = sortedChannels
     .filter((channel) => channel.is_im || channel.is_mpim)
     .map((channel) => (
-      <ChannelLink key={channel.id} channel={channel} users={users} />
+      <ChannelLink key={channel.id} channel={channel} />
     ));
 
   return (
@@ -339,10 +334,9 @@ interface HeaderProps {
   index: number;
   total: number;
   channel: Channel;
-  users: Users;
 }
 const Header: React.FunctionComponent<HeaderProps> = (props) => {
-  const { channel, index, total, users } = props;
+  const { channel, index, total } = props;
   let created;
 
   if (!channel.is_im && !channel.is_mpim) {
@@ -421,7 +415,7 @@ const Pagination: React.FunctionComponent<PaginationProps> = (props) => {
 async function renderIndexPage({ users }: { users: Users }) {
   base = "html/";
   const channels = await getChannels();
-  const page = <IndexPage channels={channels} users={users} />;
+  const page = <IndexPage channels={channels} />;
 
   return renderAndWrite(page, INDEX_PATH);
 }
@@ -440,7 +434,7 @@ function renderMessagesPage(
       messages={messages}
       index={index}
       total={total}
-      users={users}
+    
     />
   );
 
@@ -469,14 +463,12 @@ async function createHtmlForChannel({
   channel,
   i,
   total,
-  users,
 }: {
   channel: Channel;
   i: number;
   total: number;
-  users: Users;
 }) {
-  const messages = await getMessages(channel.id!);
+  const messages = await getMessages(channel.id!, true);
   const chunks = chunk(messages, MESSAGE_CHUNK);
   const spinner = ora(
     `Rendering HTML for ${i + 1}/${total} ${channel.name || channel.id}`
@@ -506,7 +498,7 @@ export async function createHtmlForChannels(channels: Array<Channel> = []) {
   console.log(`Creating HTML files...`);
 
   const _channels = channels.length === 0 ? await getChannels() : channels;
-  const users = await getUsers();
+  users = await getUsers();
 
   for (const [i, channel] of _channels.entries()) {
     if (!channel.id) {
@@ -514,7 +506,7 @@ export async function createHtmlForChannels(channels: Array<Channel> = []) {
       continue;
     }
 
-    await createHtmlForChannel({ channel, i, total: _channels.length, users });
+    await createHtmlForChannel({ channel, i, total: _channels.length });
   }
 
   await renderIndexPage({ users });

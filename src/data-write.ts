@@ -1,7 +1,7 @@
 import fs from "fs-extra";
 import { uniqBy } from "lodash-es";
 
-import { retry } from "./retry";
+import { retry } from "./retry.js";
 
 export async function write(filePath: string, data: any) {
   await retry({ name: `Writing ${filePath}` }, () => {

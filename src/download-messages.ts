@@ -196,6 +196,6 @@ export async function downloadExtras(
   }
 
   spinner.succeed(
-    `Downloaded threads and users for ${channel.name || channel.id}...`
+    `Downloaded ${totalThreads} threads and users for ${channel.name || channel.id}.`
   );
 }

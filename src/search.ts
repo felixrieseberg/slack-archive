@@ -58,7 +58,7 @@ export async function createSearch() {
   await createSearchFile(spinner);
   await createSearchHTML();
 
-  spinner.stopAndPersist({ text: `Search file created` });
+  spinner.succeed(`Search file created`);
 }
 
 async function createSearchFile(spinner: Ora) {
@@ -92,7 +92,7 @@ async function createSearchFile(spinner: Ora) {
     spinner.text = `Creating search messages for channel ${name}`;
     spinner.render();
 
-    const messages = (await getMessages(channel.id)).map((message) => {
+    const messages = (await getMessages(channel.id, true)).map((message) => {
       const searchMessage: SearchMessage = {
         m: message.text,
         u: message.user,

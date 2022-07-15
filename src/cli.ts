@@ -23,7 +23,7 @@ import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
 import { isValid, parseISO } from "date-fns";
 import { createSearch } from "./search.js";
 import { write, writeAndMerge } from "./data-write.js";
-import { getUsers } from "./data-load.js";
+import { messagesCache, getUsers } from "./data-load.js";
 
 const { prompt } = inquirer;
 
@@ -220,6 +220,9 @@ export async function main() {
       getChannelDataFilePath(channel.id),
       JSON.stringify(result, undefined, 2)
     );
+
+    // Update the data load cache
+    messagesCache[channel.id!] = result;
 
     spinner.succeed(`Saved message data for ${channel.name || channel.id}`);
   }
