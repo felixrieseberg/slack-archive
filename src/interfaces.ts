@@ -32,3 +32,12 @@ export type SearchMessage = {
   t?: string; // Timestamp
   c?: string; // Channel
 };
+
+export interface SlackArchiveChannelData {
+  messages: number;
+  fullyDownloaded: boolean;
+}
+
+export interface SlackArchiveData {
+  channels: Record<string, SlackArchiveChannelData>;
+}

@@ -123,9 +123,7 @@ const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
   return (
     <Message message={message} channelId={channelId}>
       {hasFiles ? <Files message={message} channelId={channelId} /> : null}
-      {isThread ? (
-        <Thread message={message} channelId={channelId} />
-      ) : null}
+      {isThread ? <Thread message={message} channelId={channelId} /> : null}
     </Message>
   );
 };
@@ -180,11 +178,7 @@ const Thread: React.FunctionComponent<ThreadProps> = (props) => {
   if (!replies) return null;
 
   const elements = replies.map((reply) => (
-    <Message
-      key={reply.ts}
-      message={reply}
-      channelId={channelId}
-    />
+    <Message key={reply.ts} message={reply} channelId={channelId} />
   ));
 
   return <div className="replies">{...elements}</div>;
@@ -203,11 +197,7 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
   // Newest message is first
   const messages = props.messages
     .map((m) => (
-      <ParentMessage
-        key={m.ts}
-        message={m}
-        channelId={channel.id!}
-      />
+      <ParentMessage key={m.ts} message={m} channelId={channel.id!} />
     ))
     .reverse();
 
@@ -264,23 +254,17 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
     .filter(
       (channel) => !channel.is_private && !channel.is_mpim && !channel.is_im
     )
-    .map((channel) => (
-      <ChannelLink key={channel.id} channel={channel} />
-    ));
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   const privateChannels = sortedChannels
     .filter(
       (channel) => channel.is_private && !channel.is_im && !channel.is_mpim
     )
-    .map((channel) => (
-      <ChannelLink key={channel.id} channel={channel} />
-    ));
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   const dmChannels = sortedChannels
     .filter((channel) => channel.is_im || channel.is_mpim)
-    .map((channel) => (
-      <ChannelLink key={channel.id} channel={channel} />
-    ));
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   return (
     <HtmlPage>
@@ -425,8 +409,7 @@ function renderMessagesPage(
   messages: Array<ArchiveMessage>,
   index: number,
   total: number,
-  spinner: Ora,
-  users: Users
+  spinner: Ora
 ) {
   const page = (
     <MessagesPage
@@ -434,7 +417,6 @@ function renderMessagesPage(
       messages={messages}
       index={index}
       total={total}
-    
     />
   );
 
@@ -475,18 +457,11 @@ async function createHtmlForChannel({
   ).start();
 
   if (chunks.length === 0) {
-    await renderMessagesPage(channel, [], 0, chunks.length, spinner, users);
+    await renderMessagesPage(channel, [], 0, chunks.length, spinner);
   }
 
   for (const [chunkI, chunk] of chunks.entries()) {
-    await renderMessagesPage(
-      channel,
-      chunk,
-      chunkI,
-      chunks.length,
-      spinner,
-      users
-    );
+    await renderMessagesPage(channel, chunk, chunkI, chunks.length, spinner);
   }
 
   spinner.succeed(

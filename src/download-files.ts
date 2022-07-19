@@ -72,7 +72,10 @@ export async function downloadFilesForChannel(channelId: string) {
   const channels = await getChannels();
   const channel = channels.find(({ id }) => id === channelId);
   const fileMessages = messages.filter((m) => (m.files?.length || 0) > 0);
-  const getSpinnerText = (i: number) => `Downloading ${i}/${fileMessages.length} files for channel ${channel?.name || channelId}...`
+  const getSpinnerText = (i: number) =>
+    `Downloading ${i}/${fileMessages.length} files for channel ${
+      channel?.name || channelId
+    }...`;
 
   const spinner = ora(getSpinnerText(0)).start();
 

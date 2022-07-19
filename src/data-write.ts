@@ -1,5 +1,7 @@
 import fs from "fs-extra";
 import { uniqBy } from "lodash-es";
+import { SLACK_ARCHIVE_DATA_PATH } from "./config.js";
+import { SlackArchiveData } from "./interfaces.js";
 
 import { retry } from "./retry.js";
 

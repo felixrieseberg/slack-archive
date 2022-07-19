@@ -89,12 +89,20 @@ export async function downloadChannels(
   return channels;
 }
 
+interface DownloadMessagesResult {
+  messages: Array<ArchiveMessage>;
+  new: number;
+}
+
 export async function downloadMessages(
   channel: Channel,
   i: number,
   channelCount: number
-): Promise<Array<ArchiveMessage>> {
-  let result: Array<ArchiveMessage> = [];
+): Promise<DownloadMessagesResult> {
+  let result: DownloadMessagesResult = {
+    messages: [],
+    new: 0,
+  };
 
   if (!channel.id) {
     console.warn(`Channel without id`, channel);
@@ -102,10 +110,11 @@ export async function downloadMessages(
   }
 
   for (const message of await getMessages(channel.id)) {
-    result.push(message);
+    result.messages.push(message);
   }
 
-  const oldest = result.length > 0 ? parseInt(result[0].ts || "0", 10) : 0;
+  const oldest =
+    result.messages.length > 0 ? parseInt(result.messages[0].ts || "0", 10) : 0;
   const name =
     channel.name || channel.id || channel.purpose?.value || "Unknown channel";
 
@@ -120,13 +129,15 @@ export async function downloadMessages(
     if (isConversation(page)) {
       const pageLength = page.messages?.length || 0;
       const fetched = `Fetched ${pageLength} messages`;
-      const total = `(total so far: ${result.length + pageLength}`;
+      const total = `(total so far: ${result.messages.length + pageLength}`;
 
       spinner.text = `Downloading ${
         i + 1
       }/${channelCount} ${name}: ${fetched} ${total})`;
 
-      result.unshift(...(page.messages || []));
+      result.new = result.new + (page.messages || []).length;
+
+      result.messages.unshift(...(page.messages || []));
     }
   }
 
@@ -196,6 +207,8 @@ export async function downloadExtras(
   }
 
   spinner.succeed(
-    `Downloaded ${totalThreads} threads and users for ${channel.name || channel.id}.`
+    `Downloaded ${totalThreads} threads and users for ${
+      channel.name || channel.id
+    }.`
   );
 }

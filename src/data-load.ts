@@ -1,6 +1,12 @@
 import fs from "fs-extra";
 
-import { ArchiveMessage, Channel, SearchFile, Users } from "./interfaces.js";
+import {
+  ArchiveMessage,
+  Channel,
+  SearchFile,
+  SlackArchiveData,
+  Users,
+} from "./interfaces.js";
 import {
   CHANNELS_DATA_PATH,
   getChannelDataFilePath,
@@ -31,7 +37,7 @@ export async function getMessages(
 
   const filePath = getChannelDataFilePath(channelId);
   messagesCache[channelId] = await getFile<Array<ArchiveMessage>>(filePath, []);
-  
+
   return messagesCache[channelId];
 }
 

@@ -24,6 +24,7 @@ import { isValid, parseISO } from "date-fns";
 import { createSearch } from "./search.js";
 import { write, writeAndMerge } from "./data-write.js";
 import { messagesCache, getUsers } from "./data-load.js";
+import { getSlackArchiveData, setSlackArchiveData } from "./archive-data.js";
 
 const { prompt } = inquirer;
 
@@ -176,12 +177,14 @@ export async function main() {
   await getToken();
   await createBackup();
 
+  const slackArchiveData = await getSlackArchiveData();
   const users: Record<string, User> = await getUsers();
   const channelTypes = (await selectChannelTypes()).join(",");
 
   console.log(`Downloading channels...\n`);
   const channels = await downloadChannels({ types: channelTypes }, users);
   const selectedChannels = await selectChannels(channels);
+  const newMessages: Record<string, number> = {};
 
   // Do we want to merge data?
   await selectMergeFiles();
@@ -193,12 +196,21 @@ export async function main() {
       continue;
     }
 
+    // Do we already have everything?
+    slackArchiveData.channels[channel.id] =
+      slackArchiveData.channels[channel.id] || {};
+    if (slackArchiveData.channels[channel.id].fullyDownloaded) {
+      continue;
+    }
+
     // Download messages & users
-    let result = await downloadMessages(
+    let downloadData = await downloadMessages(
       channel,
       i,
       selectedChannels.length
     );
+    let result = downloadData.messages;
+    newMessages[channel.id] = downloadData.new;
     await downloadExtras(channel, result, users);
 
     // Download files
@@ -224,11 +236,23 @@ export async function main() {
     // Update the data load cache
     messagesCache[channel.id!] = result;
 
+    // Update the data
+    const { is_archived, is_im, is_user_deleted } = channel;
+    if (is_archived || (is_im && is_user_deleted)) {
+      slackArchiveData.channels[channel.id].fullyDownloaded = true;
+    }
+    slackArchiveData.channels[channel.id].messages = result.length;
+
     spinner.succeed(`Saved message data for ${channel.name || channel.id}`);
   }
 
-  // Create HTML
-  await createHtmlForChannels(selectedChannels);
+  // Save data
+  await setSlackArchiveData(slackArchiveData);
+
+  // Create HTML, but only for channels with new messages
+  await createHtmlForChannels(
+    selectedChannels.filter(({ id }) => id && newMessages[id] > 0)
+  );
 
   // Create search file
   await createSearch();
