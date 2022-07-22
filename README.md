@@ -48,11 +48,13 @@ Give it a name and choose the workspace you'd like to export.
 
 Then, from the `Features` menu on the left, select `OAuth & Permission`. 
 
-As a redirect URL, enter something random that doesn't actually exist. For instace:
+As a redirect URL, enter something random that doesn't actually exist, or a domain you control. For instace:
 
 ```
 https://notarealurl.com/
 ```
+
+(Note that redirects will take a _very_ long time if using a domain that doesn't actually exist)
 
 Then, add the following `User Token Scopes`:
 
