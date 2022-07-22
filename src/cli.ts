@@ -213,8 +213,6 @@ export async function main() {
     newMessages[channel.id] = downloadData.new;
     await downloadExtras(channel, result, users);
 
-    // Download files
-    await downloadFilesForChannel(channel.id!);
     await downloadAvatars();
 
     // Sort messages
@@ -232,6 +230,9 @@ export async function main() {
       getChannelDataFilePath(channel.id),
       JSON.stringify(result, undefined, 2)
     );
+
+    // Download files. This needs to run after the messages are saved to disk since it uses the message data to find which files to download.
+    await downloadFilesForChannel(channel.id!);
 
     // Update the data load cache
     messagesCache[channel.id!] = result;
