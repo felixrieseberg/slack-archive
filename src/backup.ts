@@ -65,6 +65,7 @@ export async function deleteOlderBackups() {
       console.log(
         `Found existing older backups, but in automatic mode: Proceeding without deleting them.`
       );
+      return;
     }
 
     const { del } = await prompt([
