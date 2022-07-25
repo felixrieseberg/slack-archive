@@ -117,13 +117,12 @@ interface ParentMessageProps {
 }
 const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
   const { message, channelId } = props;
-  const isThread = !!message.replies;
   const hasFiles = !!message.files;
 
   return (
     <Message message={message} channelId={channelId}>
       {hasFiles ? <Files message={message} channelId={channelId} /> : null}
-      {isThread ? <Thread message={message} channelId={channelId} /> : null}
+      {message.replies?.map(reply  => <ParentMessage message={reply} channelId={channelId} />)}
     </Message>
   );
 };
@@ -167,22 +166,6 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
   );
 };
 
-interface ThreadProps {
-  message: ArchiveMessage;
-  channelId: string;
-}
-const Thread: React.FunctionComponent<ThreadProps> = (props) => {
-  const { message, channelId } = props;
-  const { replies } = message;
-
-  if (!replies) return null;
-
-  const elements = replies.map((reply) => (
-    <Message key={reply.ts} message={reply} channelId={channelId} />
-  ));
-
-  return <div className="replies">{...elements}</div>;
-};
 
 interface MessagesPageProps {
   messages: Array<ArchiveMessage>;
