@@ -24,6 +24,14 @@ can still enjoy in 20 years. This tool will help you do that.
 npx slack-archive
 ```
 
+Alternatively, to run a development version in Docker:
+1. Checkout the code from Git
+2. Make sure Docker is installed
+3. Run `./run_in_docker.sh`
+
+This will build Docker image called `slack-archive:dev`, compile it and start the interactive guide.
+Results wil be saved in folder `slack-archive_USERDATA/`.
+
 ### Parameters
 
 ```
