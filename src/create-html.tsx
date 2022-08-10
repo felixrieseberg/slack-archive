@@ -122,7 +122,7 @@ const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
   return (
     <Message message={message} channelId={channelId}>
       {hasFiles ? <Files message={message} channelId={channelId} /> : null}
-      {message.replies?.map(reply  => <ParentMessage message={reply} channelId={channelId} />)}
+      {message.replies?.map(reply  => <ParentMessage message={reply} channelId={channelId} key={reply.ts} />)}
     </Message>
   );
 };
