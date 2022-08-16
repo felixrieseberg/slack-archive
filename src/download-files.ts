@@ -4,7 +4,7 @@ import esMain from "es-main";
 import ora, { Ora } from "ora";
 import path from "path";
 
-import { File, User } from "./interfaces.js";
+import { File, Message, User } from "./interfaces.js";
 import {
   getAvatarFilePath,
   getChannelUploadFilePath,
@@ -71,23 +71,44 @@ export async function downloadFilesForChannel(channelId: string) {
   const messages = await getMessages(channelId);
   const channels = await getChannels();
   const channel = channels.find(({ id }) => id === channelId);
-  const fileMessages = messages.filter((m) => (m.files?.length || 0) > 0);
-  const getSpinnerText = (i: number) =>
-    `Downloading ${i}/${fileMessages.length} files for channel ${
+  const fileMessages = messages.filter((m) => (m.files?.length || m.replies?.length || 0) > 0);
+  const getSpinnerText = (i: number, ri?: number) => {
+    let reply = '';
+    if (ri !== undefined) {
+      reply = ` (reply ${ri})`
+    }
+
+    return `Downloading ${i}/${fileMessages.length}${reply} messages with files for channel ${
       channel?.name || channelId
     }...`;
+  }
+    
 
   const spinner = ora(getSpinnerText(0)).start();
 
   for (const [i, fileMessage] of fileMessages.entries()) {
-    if (!fileMessage.files) {
+    if (!fileMessage.files && !fileMessage.replies) {
       continue;
     }
 
-    for (const file of fileMessage.files) {
-      spinner.text = getSpinnerText(i);
-      spinner.render();
-      await downloadFile(file, channelId, i, fileMessages.length, spinner);
+    if (fileMessage.files) {
+      for (const file of fileMessage.files) {
+        spinner.text = getSpinnerText(i);
+        spinner.render();
+        await downloadFile(file, channelId, i, fileMessages.length, spinner);
+      }
+    }
+
+    if (fileMessage.replies) {
+      for (const [ri, reply] of fileMessage.replies.entries()) {
+        if (reply.files) {
+          for (const file of reply.files) {
+            spinner.text = getSpinnerText(i, ri);
+            spinner.render();
+            await downloadFile(file, channelId, i, fileMessages.length, spinner);
+          }
+        }
+      }
     }
   }
 
