@@ -11,7 +11,14 @@ import esMain from "es-main";
 import slackMarkdown from "slack-markdown";
 
 import { getChannels, getMessages, getUsers } from "./data-load.js";
-import { ArchiveMessage, Channel, Message, Users } from "./interfaces.js";
+import {
+  ArchiveMessage,
+  Channel,
+  Message,
+  SlackArchiveData,
+  User,
+  Users,
+} from "./interfaces.js";
 import {
   getHTMLFilePath,
   INDEX_PATH,
@@ -21,6 +28,7 @@ import {
 import { slackTimestampToJavaScriptTimestamp } from "./timestamp.js";
 import { recordPage } from "./search.js";
 import { write } from "./data-write.js";
+import { getSlackArchiveData } from "./archive-data.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const MESSAGE_CHUNK = 1000;
@@ -29,6 +37,8 @@ const MESSAGE_CHUNK = 1000;
 // was surprisingly slow. Global variables are cool again!
 // Set by createHtmlForChannels().
 let users: Users = {};
+let slackArchiveData: SlackArchiveData = { channels: {} };
+let me: User | null;
 
 // Little hack to switch between ./index.html and ./html/...
 let base = "";
@@ -122,7 +132,9 @@ const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
   return (
     <Message message={message} channelId={channelId}>
       {hasFiles ? <Files message={message} channelId={channelId} /> : null}
-      {message.replies?.map(reply  => <ParentMessage message={reply} channelId={channelId} key={reply.ts} />)}
+      {message.replies?.map((reply) => (
+        <ParentMessage message={reply} channelId={channelId} key={reply.ts} />
+      ))}
     </Message>
   );
 };
@@ -166,7 +178,6 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
   );
 };
 
-
 interface MessagesPageProps {
   messages: Array<ArchiveMessage>;
   channel: Channel;
@@ -208,11 +219,22 @@ const ChannelLink: React.FunctionComponent<ChannelLinkProps> = ({
   let name = channel.name || channel.id;
   let leadSymbol = <span># </span>;
 
+  const channelData = slackArchiveData.channels[channel.id!];
+  if (channelData && channelData.messages === 0) {
+    return null;
+  }
+
+  // Remove the user's name from the group mpdm channel name
+  if (me && channel.is_mpim) {
+    name = name?.replace(`@${me.name}`, "").replace("  ", " ");
+  }
+
   if (channel.is_im && (channel as any).user) {
     leadSymbol = <Avatar userId={(channel as any).user} />;
   }
 
   if (channel.is_mpim) {
+    leadSymbol = <></>;
     name = name?.replace("Group messaging with: ", "");
   }
 
@@ -246,7 +268,24 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   const dmChannels = sortedChannels
-    .filter((channel) => channel.is_im || channel.is_mpim)
+    .filter((channel) => channel.is_im)
+    .sort((a, b) => {
+      // Self first
+      if (me && a.user && a.user === me.id) {
+        return -1;
+      }
+
+      // Then alphabetically
+      if (a.name && b.name) {
+        return a.name!.localeCompare(b.name!);
+      }
+
+      return 1;
+    })
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+
+  const groupChannels = sortedChannels
+    .filter((channel) => channel.is_mpim)
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   return (
@@ -259,6 +298,8 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
           <ul>{privateChannels}</ul>
           <p className="section">DMs</p>
           <ul>{dmChannels}</ul>
+          <p className="section">Group DMs</p>
+          <ul>{groupChannels}</ul>
         </div>
         <div id="messages">
           <iframe name="iframe" src={`html/${channels[0].id!}-0.html`} />
@@ -457,6 +498,10 @@ export async function createHtmlForChannels(channels: Array<Channel> = []) {
 
   const _channels = channels.length === 0 ? await getChannels() : channels;
   users = await getUsers();
+  slackArchiveData = await getSlackArchiveData();
+  me = slackArchiveData.auth?.user_id
+    ? users[slackArchiveData.auth?.user_id]
+    : null;
 
   for (const [i, channel] of _channels.entries()) {
     if (!channel.id) {

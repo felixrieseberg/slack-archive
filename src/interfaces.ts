@@ -2,6 +2,7 @@ import { Message as SlackMessage } from "@slack/web-api/dist/response/Conversati
 import { Channel as SlackChannel } from "@slack/web-api/dist/response/ConversationsListResponse";
 import { User as SlackUser } from "@slack/web-api/dist/response/UsersInfoResponse";
 import { File as SlackFile } from "@slack/web-api/dist/response/FilesInfoResponse";
+import { AuthTestResponse } from "@slack/web-api";
 
 export type User = SlackUser;
 
@@ -40,4 +41,5 @@ export interface SlackArchiveChannelData {
 
 export interface SlackArchiveData {
   channels: Record<string, SlackArchiveChannelData>;
+  auth?: AuthTestResponse;
 }

@@ -15,7 +15,11 @@ import {
   AUTOMATIC_MODE,
   DATE_FILE,
 } from "./config.js";
-import { downloadChannels, downloadExtras } from "./download-messages.js";
+import {
+  authTest,
+  downloadChannels,
+  downloadExtras,
+} from "./download-messages.js";
 import { downloadMessages } from "./download-messages.js";
 import { downloadAvatars, downloadFilesForChannel } from "./download-files.js";
 import { createHtmlForChannels } from "./create-html.js";
@@ -167,6 +171,30 @@ function getLastSuccessfulRun() {
   return "";
 }
 
+async function getAuthTest() {
+  const result = await authTest();
+
+  if (!result.ok) {
+    console.log(
+      `Authentication with Slack failed. The error was: ${result.error}`
+    );
+    console.log(
+      `The provided token was ${config.token}. Double-check the token and try again.`
+    );
+    console.log(
+      `For more information on the error code, see the error table at https://api.slack.com/methods/auth.test`
+    );
+    console.log(`This tool will now exit.`);
+
+    await deleteBackup();
+    process.exit(-1);
+  } else {
+    console.log(`Successfully authorized with Slack as ${result.user}\n`);
+  }
+
+  return result;
+}
+
 export async function main() {
   console.log(`Welcome to slack-archive${getLastSuccessfulRun()}`);
 
@@ -180,6 +208,9 @@ export async function main() {
   const slackArchiveData = await getSlackArchiveData();
   const users: Record<string, User> = await getUsers();
   const channelTypes = (await selectChannelTypes()).join(",");
+
+  console.log(`Testing auth...`);
+  slackArchiveData.auth = await getAuthTest();
 
   console.log(`Downloading channels...\n`);
   const channels = await downloadChannels({ types: channelTypes }, users);

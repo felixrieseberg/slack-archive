@@ -187,6 +187,7 @@ export async function downloadExtras(
     `Downloading threads and users for ${channel.name || channel.id}...`
   ).start();
 
+  // Then, all messages and threads
   let processedThreads = 0;
   const totalThreads = messages.filter(isThread).length;
   for (const message of messages) {
@@ -211,4 +212,8 @@ export async function downloadExtras(
       channel.name || channel.id
     }.`
   );
+}
+
+export async function authTest() {
+  return getWebClient().auth.test();
 }
