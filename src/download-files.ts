@@ -71,18 +71,19 @@ export async function downloadFilesForChannel(channelId: string) {
   const messages = await getMessages(channelId);
   const channels = await getChannels();
   const channel = channels.find(({ id }) => id === channelId);
-  const fileMessages = messages.filter((m) => (m.files?.length || m.replies?.length || 0) > 0);
+  const fileMessages = messages.filter(
+    (m) => (m.files?.length || m.replies?.length || 0) > 0
+  );
   const getSpinnerText = (i: number, ri?: number) => {
-    let reply = '';
+    let reply = "";
     if (ri !== undefined) {
-      reply = ` (reply ${ri})`
+      reply = ` (reply ${ri})`;
     }
 
-    return `Downloading ${i}/${fileMessages.length}${reply} messages with files for channel ${
-      channel?.name || channelId
-    }...`;
-  }
-    
+    return `Downloading ${i}/${
+      fileMessages.length
+    }${reply} messages with files for channel ${channel?.name || channelId}...`;
+  };
 
   const spinner = ora(getSpinnerText(0)).start();
 
@@ -105,7 +106,13 @@ export async function downloadFilesForChannel(channelId: string) {
           for (const file of reply.files) {
             spinner.text = getSpinnerText(i, ri);
             spinner.render();
-            await downloadFile(file, channelId, i, fileMessages.length, spinner);
+            await downloadFile(
+              file,
+              channelId,
+              i,
+              fileMessages.length,
+              spinner
+            );
           }
         }
       }
