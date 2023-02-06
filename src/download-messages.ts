@@ -9,8 +9,8 @@ import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
 import ora from "ora";
 
 import { config } from "./config.js";
-import { ArchiveMessage, Message, Users } from "./interfaces.js";
-import { getMessages } from "./data-load.js";
+import { ArchiveMessage, Emojis, Message, Users } from "./interfaces.js";
+import { getEmoji, getMessages } from "./data-load.js";
 import { isThread } from "./threads.js";
 
 let _webClient: WebClient;
@@ -49,6 +49,16 @@ async function downloadUser(
   }
 
   return null;
+}
+
+export async function downloadEmojiList(): Promise<Emojis> {
+  const response = await getWebClient().emoji.list();
+
+  if (response.ok) {
+    return response.emoji!;
+  } else {
+    return {};
+  }
 }
 
 export async function downloadChannels(
@@ -193,6 +203,7 @@ export async function downloadExtras(
   let processedThreads = 0;
   const totalThreads = messages.filter(isThread).length;
   for (const message of messages) {
+    // Download threads
     if (isThread(message)) {
       processedThreads++;
       spinner.text = `Downloading threads (${processedThreads}/${totalThreads}) for ${
@@ -201,6 +212,7 @@ export async function downloadExtras(
       message.replies = await downloadReplies(channel, message);
     }
 
+    // Download users and avatars
     if (message.user && users[message.user] === undefined) {
       const usr = await downloadUser(message, users);
       if (usr) {

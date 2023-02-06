@@ -14,10 +14,12 @@ import {
   TOKEN_FILE,
   AUTOMATIC_MODE,
   DATE_FILE,
+  EMOJIS_DATA_PATH,
 } from "./config.js";
 import {
   authTest,
   downloadChannels,
+  downloadEmojiList,
   downloadExtras,
 } from "./download-messages.js";
 import { downloadMessages } from "./download-messages.js";
@@ -32,6 +34,7 @@ import { createSearch } from "./search.js";
 import { write, writeAndMerge } from "./data-write.js";
 import { messagesCache, getUsers } from "./data-load.js";
 import { getSlackArchiveData, setSlackArchiveData } from "./archive-data.js";
+import { downloadEmojis } from "./emoji.js";
 
 const { prompt } = inquirer;
 
@@ -220,6 +223,12 @@ export async function main() {
   const selectedChannels = await selectChannels(channels);
   const newMessages: Record<string, number> = {};
 
+  // Emoji
+  // We don't actually download the images here, we'll
+  // do that as needed
+  const emojis = await downloadEmojiList();
+  await write(EMOJIS_DATA_PATH, JSON.stringify(emojis));
+
   // Do we want to merge data?
   await selectMergeFiles();
   await writeAndMerge(CHANNELS_DATA_PATH, selectedChannels);
@@ -247,6 +256,7 @@ export async function main() {
     newMessages[channel.id] = downloadData.new;
 
     await downloadExtras(channel, result, users);
+    await downloadEmojis(result, emojis);
     await downloadAvatars();
 
     // Sort messages

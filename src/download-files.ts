@@ -4,7 +4,7 @@ import esMain from "es-main";
 import ora, { Ora } from "ora";
 import path from "path";
 
-import { File, Message, User } from "./interfaces.js";
+import { Emojis, File, Message, User } from "./interfaces.js";
 import {
   getAvatarFilePath,
   getChannelUploadFilePath,
@@ -13,7 +13,7 @@ import {
 } from "./config.js";
 import { getChannels, getMessages, getUsers } from "./data-load.js";
 
-async function downloadURL(
+export async function downloadURL(
   url: string,
   filePath: string,
   authorize: boolean = true

@@ -3,12 +3,13 @@ import fs from "fs-extra";
 import {
   ArchiveMessage,
   Channel,
+  Emojis,
   SearchFile,
-  SlackArchiveData,
   Users,
 } from "./interfaces.js";
 import {
   CHANNELS_DATA_PATH,
+  EMOJIS_DATA_PATH,
   getChannelDataFilePath,
   SEARCH_DATA_PATH,
   USERS_DATA_PATH,
@@ -43,6 +44,10 @@ export async function getMessages(
 
 export async function getUsers(): Promise<Users> {
   return getFile<Users>(USERS_DATA_PATH, {});
+}
+
+export async function getEmoji(): Promise<Emojis> {
+  return getFile<Emojis>(EMOJIS_DATA_PATH, {});
 }
 
 export async function getChannels(): Promise<Array<Channel>> {

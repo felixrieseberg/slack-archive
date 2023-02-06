@@ -31,6 +31,7 @@ import { slackTimestampToJavaScriptTimestamp } from "./timestamp.js";
 import { recordPage } from "./search.js";
 import { write } from "./data-write.js";
 import { getSlackArchiveData } from "./archive-data.js";
+import { getEmojiFilePath, getEmojiUnicode, isEmojiUnicode } from "./emoji.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const MESSAGE_CHUNK = 1000;
@@ -148,13 +149,31 @@ interface ReactionProps {
   reaction: Reaction;
 }
 const Reaction: React.FunctionComponent<ReactionProps> = ({ reaction }) => {
+  const reactors = [];
+
+  if (reaction.users) {
+    for (const userId of reaction.users) {
+      reactors.push(users[userId]?.name);
+    }
+  }
+
   return (
-    <div className="reaction">
-      <span>
-        :{reaction.name}: {reaction.count}
-      </span>
+    <div className="reaction" title={reactors.join(", ")}>
+      <Emoji name={reaction.name!} />
+      <span>{reaction.count}</span>
     </div>
   );
+};
+
+interface EmojiProps {
+  name: string;
+}
+const Emoji: React.FunctionComponent<EmojiProps> = ({ name }) => {
+  if (isEmojiUnicode(name)) {
+    return <>{getEmojiUnicode(name)}</>;
+  }
+
+  return <img src={getEmojiFilePath(name)} />;
 };
 
 interface MessageProps {

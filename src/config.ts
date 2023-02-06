@@ -35,6 +35,7 @@ export const DATA_DIR = path.join(OUT_DIR, "data");
 export const HTML_DIR = path.join(OUT_DIR, "html");
 export const FILES_DIR = path.join(HTML_DIR, "files");
 export const AVATARS_DIR = path.join(HTML_DIR, "avatars");
+export const EMOJIS_DIR = path.join(HTML_DIR, "emojis");
 
 export const INDEX_PATH = path.join(OUT_DIR, "index.html");
 export const SEARCH_PATH = path.join(OUT_DIR, "search.html");
@@ -45,6 +46,7 @@ export const SEARCH_TEMPLATE_PATH = path.join(
 );
 export const CHANNELS_DATA_PATH = path.join(DATA_DIR, "channels.json");
 export const USERS_DATA_PATH = path.join(DATA_DIR, "users.json");
+export const EMOJIS_DATA_PATH = path.join(DATA_DIR, "emojis.json");
 export const SLACK_ARCHIVE_DATA_PATH = path.join(
   DATA_DIR,
   "slack-archive.json"

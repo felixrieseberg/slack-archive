@@ -9,6 +9,8 @@ export type User = SlackUser;
 
 export type Users = Record<string, User>;
 
+export type Emojis = Record<string, string>;
+
 export interface ArchiveMessage extends SlackMessage {
   replies?: Array<SlackMessage>;
 }
