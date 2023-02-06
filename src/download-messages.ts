@@ -141,7 +141,9 @@ export async function downloadMessages(
     }
   }
 
-  spinner.succeed(`Downloaded messages for channel ${i + 1}/${channelCount} (${name})`);
+  spinner.succeed(
+    `Downloaded messages for channel ${i + 1}/${channelCount} (${name})`
+  );
 
   return result;
 }

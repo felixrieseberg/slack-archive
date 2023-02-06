@@ -465,6 +465,29 @@ async function renderAndWrite(page: JSX.Element, filePath: string) {
   await write(filePath, htmlWDoc);
 }
 
+export async function getChannelsToCreateFilesFor(
+  channels: Array<Channel>,
+  newMessages: Record<string, number>
+) {
+  const result: Array<Channel> = [];
+
+  for (const channel of channels) {
+    if (channel.id) {
+      // Do we have new messages?
+      if (newMessages[channel.id] > 0) {
+        result.push(channel);
+      }
+
+      // Did we never create a file?
+      if (!fs.existsSync(getHTMLFilePath(channel.id!, 0))) {
+        result.push(channel);
+      }
+    }
+  }
+
+  return result;
+}
+
 async function createHtmlForChannel({
   channel,
   i,

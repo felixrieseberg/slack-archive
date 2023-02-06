@@ -22,7 +22,10 @@ import {
 } from "./download-messages.js";
 import { downloadMessages } from "./download-messages.js";
 import { downloadAvatars, downloadFilesForChannel } from "./download-files.js";
-import { createHtmlForChannels } from "./create-html.js";
+import {
+  createHtmlForChannels,
+  getChannelsToCreateFilesFor,
+} from "./create-html.js";
 import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
 import { isValid, parseISO } from "date-fns";
 import { createSearch } from "./search.js";
@@ -242,7 +245,7 @@ export async function main() {
     );
     let result = downloadData.messages;
     newMessages[channel.id] = downloadData.new;
-    
+
     await downloadExtras(channel, result, users);
     await downloadAvatars();
 
@@ -284,9 +287,11 @@ export async function main() {
 
   // Create HTML, but only for channels with new messages
   // - or channels that we didn't make HTML for yet
-  await createHtmlForChannels(
-    selectedChannels.filter(({ id }) => id && newMessages[id] > 0)
+  const channelsToCreateFilesFor = await getChannelsToCreateFilesFor(
+    selectedChannels,
+    newMessages
   );
+  await createHtmlForChannels(channelsToCreateFilesFor);
 
   // Create search file
   await createSearch();
