@@ -23,7 +23,6 @@ function findCliParameter(param: string) {
 export const AUTOMATIC_MODE = findCliParameter("--automatic");
 export const NO_BACKUP = findCliParameter("--no-backup");
 export const NO_SEARCH = findCliParameter("--no-search");
-export const ONLY_HTML = findCliParameter("--only-html");
 export const NO_FILE_DOWNLOAD = findCliParameter("--no-file-download");
 export const FORCE_HTML_GENERATION = findCliParameter(
   "--force-html-generation"

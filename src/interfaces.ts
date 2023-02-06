@@ -2,6 +2,7 @@ import { Message as SlackMessage } from "@slack/web-api/dist/response/Conversati
 import { Channel as SlackChannel } from "@slack/web-api/dist/response/ConversationsListResponse";
 import { User as SlackUser } from "@slack/web-api/dist/response/UsersInfoResponse";
 import { File as SlackFile } from "@slack/web-api/dist/response/FilesInfoResponse";
+import { Reaction as SlackReaction } from "@slack/web-api/dist/response/ReactionsGetResponse";
 import { AuthTestResponse } from "@slack/web-api";
 
 export type User = SlackUser;
@@ -11,6 +12,8 @@ export type Users = Record<string, User>;
 export interface ArchiveMessage extends SlackMessage {
   replies?: Array<SlackMessage>;
 }
+
+export type Reaction = SlackReaction;
 
 export type Message = SlackMessage;
 

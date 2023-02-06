@@ -15,6 +15,7 @@ import {
   ArchiveMessage,
   Channel,
   Message,
+  Reaction,
   SlackArchiveData,
   User,
   Users,
@@ -133,10 +134,26 @@ const ParentMessage: React.FunctionComponent<ParentMessageProps> = (props) => {
   return (
     <Message message={message} channelId={channelId}>
       {hasFiles ? <Files message={message} channelId={channelId} /> : null}
+      {message.reactions?.map((reaction) => (
+        <Reaction key={reaction.name} reaction={reaction} />
+      ))}
       {message.replies?.map((reply) => (
         <ParentMessage message={reply} channelId={channelId} key={reply.ts} />
       ))}
     </Message>
+  );
+};
+
+interface ReactionProps {
+  reaction: Reaction;
+}
+const Reaction: React.FunctionComponent<ReactionProps> = ({ reaction }) => {
+  return (
+    <div className="reaction">
+      <span>
+        :{reaction.name}: {reaction.count}
+      </span>
+    </div>
   );
 };
 

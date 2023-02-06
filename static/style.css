@@ -200,6 +200,17 @@ audio, video {
   outline: none;
 }
 
+.reaction {
+  background-color: #eaeaea;
+  display: inline-block;
+  border-radius: 10px;
+  font-size: .7em;
+  padding-left: 6px;
+  padding-right: 6px;
+  padding-bottom: 1px;
+  margin-right: 5px;
+}
+
 #index {
   display: flex;
   height: calc(100vh - 4px);
