@@ -9,7 +9,7 @@ import {
   getAvatarFilePath,
   getChannelUploadFilePath,
   config,
-  SKIP_FILE_DOWNLOAD,
+  NO_FILE_DOWNLOAD,
 } from "./config.js";
 import { getChannels, getMessages, getUsers } from "./data-load.js";
 
@@ -69,7 +69,7 @@ async function downloadFile(
 }
 
 export async function downloadFilesForChannel(channelId: string, spinner: Ora) {
-  if (SKIP_FILE_DOWNLOAD) {
+  if (NO_FILE_DOWNLOAD) {
     return;
   }
 

@@ -24,6 +24,7 @@ import {
   INDEX_PATH,
   OUT_DIR,
   MESSAGES_JS_PATH,
+  FORCE_HTML_GENERATION,
 } from "./config.js";
 import { slackTimestampToJavaScriptTimestamp } from "./timestamp.js";
 import { recordPage } from "./search.js";
@@ -470,6 +471,12 @@ export async function getChannelsToCreateFilesFor(
   newMessages: Record<string, number>
 ) {
   const result: Array<Channel> = [];
+
+  // If HTML regeneration is forced, ignore everything
+  // and just return all channels
+  if (FORCE_HTML_GENERATION) {
+    return await getChannels();
+  }
 
   for (const channel of channels) {
     if (channel.id) {
