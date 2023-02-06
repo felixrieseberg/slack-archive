@@ -119,7 +119,7 @@ export async function downloadMessages(
     channel.name || channel.id || channel.purpose?.value || "Unknown channel";
 
   const spinner = ora(
-    `Downloading ${i + 1}/${channelCount} ${name}...`
+    `Downloading messages for channel ${i + 1}/${channelCount} (${name})...`
   ).start();
 
   for await (const page of getWebClient().paginate("conversations.history", {
@@ -141,7 +141,7 @@ export async function downloadMessages(
     }
   }
 
-  spinner.succeed(`Downloaded ${i + 1}/${channelCount} ${name}...`);
+  spinner.succeed(`Downloaded messages for channel ${i + 1}/${channelCount} (${name})`);
 
   return result;
 }

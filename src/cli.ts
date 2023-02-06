@@ -242,8 +242,8 @@ export async function main() {
     );
     let result = downloadData.messages;
     newMessages[channel.id] = downloadData.new;
+    
     await downloadExtras(channel, result, users);
-
     await downloadAvatars();
 
     // Sort messages
@@ -262,8 +262,9 @@ export async function main() {
       JSON.stringify(result, undefined, 2)
     );
 
-    // Download files. This needs to run after the messages are saved to disk since it uses the message data to find which files to download.
-    await downloadFilesForChannel(channel.id!);
+    // Download files. This needs to run after the messages are saved to disk
+    // since it uses the message data to find which files to download.
+    await downloadFilesForChannel(channel.id!, spinner);
 
     // Update the data load cache
     messagesCache[channel.id!] = result;
@@ -282,6 +283,7 @@ export async function main() {
   await setSlackArchiveData(slackArchiveData);
 
   // Create HTML, but only for channels with new messages
+  // - or channels that we didn't make HTML for yet
   await createHtmlForChannels(
     selectedChannels.filter(({ id }) => id && newMessages[id] > 0)
   );

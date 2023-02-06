@@ -9,6 +9,7 @@ import {
   getAvatarFilePath,
   getChannelUploadFilePath,
   config,
+  SKIP_FILE_DOWNLOAD,
 } from "./config.js";
 import { getChannels, getMessages, getUsers } from "./data-load.js";
 
@@ -67,7 +68,11 @@ async function downloadFile(
   }
 }
 
-export async function downloadFilesForChannel(channelId: string) {
+export async function downloadFilesForChannel(channelId: string, spinner: Ora) {
+  if (SKIP_FILE_DOWNLOAD) {
+    return;
+  }
+
   const messages = await getMessages(channelId);
   const channels = await getChannels();
   const channel = channels.find(({ id }) => id === channelId);
@@ -85,7 +90,7 @@ export async function downloadFilesForChannel(channelId: string) {
     }${reply} messages with files for channel ${channel?.name || channelId}...`;
   };
 
-  const spinner = ora(getSpinnerText(0)).start();
+  spinner.text = getSpinnerText(0);
 
   for (const [i, fileMessage] of fileMessages.entries()) {
     if (!fileMessage.files && !fileMessage.replies) {
@@ -118,10 +123,6 @@ export async function downloadFilesForChannel(channelId: string) {
       }
     }
   }
-
-  spinner.succeed(
-    `Downloaded files for channel ${channel?.name || channelId}.`
-  );
 }
 
 export async function downloadAvatars() {
@@ -149,7 +150,7 @@ export async function downloadAvatarForUser(user?: User | null) {
       user.id!,
       path.extname(profile.image_512)
     );
-    downloadURL(profile.image_512, filePath, false);
+    await downloadURL(profile.image_512, filePath, false);
   } catch (error) {
     console.warn(`Failed to download avatar for user ${user.id!}`, error);
   }
@@ -169,7 +170,7 @@ async function main() {
 
     for (const channel of channels) {
       if (channel.id) {
-        downloadFilesForChannel(channel.id);
+        downloadFilesForChannel(channel.id, ora());
       }
     }
   }
