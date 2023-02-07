@@ -4,21 +4,28 @@ import esMain from "es-main";
 import ora, { Ora } from "ora";
 import path from "path";
 
-import { Emojis, File, Message, User } from "./interfaces.js";
+import { File } from "./interfaces.js";
 import {
-  getAvatarFilePath,
   getChannelUploadFilePath,
   config,
   NO_FILE_DOWNLOAD,
 } from "./config.js";
-import { getChannels, getMessages, getUsers } from "./data-load.js";
+import { getChannels, getMessages } from "./data-load.js";
+import { downloadAvatars } from "./users.js";
+
+export interface DownloadUrlOptions {
+  authorize?: boolean;
+  force?: boolean;
+}
 
 export async function downloadURL(
   url: string,
   filePath: string,
-  authorize: boolean = true
+  options: DownloadUrlOptions = {}
 ) {
-  if (fs.existsSync(filePath)) {
+  const authorize = options.authorize === undefined ? true : options.authorize;
+
+  if (!options.force && fs.existsSync(filePath)) {
     return;
   }
 
@@ -123,59 +130,4 @@ export async function downloadFilesForChannel(channelId: string, spinner: Ora) {
       }
     }
   }
-}
-
-export async function downloadAvatars() {
-  const users = await getUsers();
-  const userIds = Object.keys(users);
-
-  for (const userId of userIds) {
-    await downloadAvatarForUser(users[userId]);
-  }
-}
-
-export async function downloadAvatarForUser(user?: User | null) {
-  if (!user) {
-    return;
-  }
-
-  const { profile } = user;
-
-  if (!profile || !profile.image_512) {
-    return;
-  }
-
-  try {
-    const filePath = getAvatarFilePath(
-      user.id!,
-      path.extname(profile.image_512)
-    );
-    await downloadURL(profile.image_512, filePath, false);
-  } catch (error) {
-    console.warn(`Failed to download avatar for user ${user.id!}`, error);
-  }
-}
-
-async function main() {
-  const lastArg = process.argv[process.argv.length - 1];
-
-  if (lastArg === "avatars") {
-    console.log(`Downloading avatars`);
-    await downloadAvatars();
-  }
-
-  if (lastArg === "channels") {
-    console.log(`Downloading files for channels`);
-    const channels = await getChannels();
-
-    for (const channel of channels) {
-      if (channel.id) {
-        downloadFilesForChannel(channel.id, ora());
-      }
-    }
-  }
-}
-
-if (esMain(import.meta)) {
-  main();
 }

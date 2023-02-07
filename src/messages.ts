@@ -2,24 +2,15 @@ import {
   ConversationsHistoryResponse,
   ConversationsListArguments,
   ConversationsListResponse,
-  WebClient,
 } from "@slack/web-api";
 import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
-import { User } from "@slack/web-api/dist/response/UsersInfoResponse";
-import ora from "ora";
+import ora, { Ora } from "ora";
 
-import { config } from "./config.js";
 import { ArchiveMessage, Emojis, Message, Users } from "./interfaces.js";
-import { getEmoji, getMessages } from "./data-load.js";
+import { getMessages } from "./data-load.js";
 import { isThread } from "./threads.js";
-
-let _webClient: WebClient;
-function getWebClient() {
-  if (_webClient) return _webClient;
-
-  const { token } = config;
-  return (_webClient = new WebClient(token));
-}
+import { downloadUser, usersRefetchedThisRun } from "./users.js";
+import { getWebClient } from "./web-client.js";
 
 function isConversation(input: any): input is ConversationsHistoryResponse {
   return !!input.messages;
@@ -29,54 +20,21 @@ function isChannels(input: any): input is ConversationsListResponse {
   return !!input.channels;
 }
 
-async function downloadUser(
-  item: Message | any,
-  users: Users
-): Promise<User | null> {
-  if (!item.user) return null;
-  if (users[item.user]) return users[item.user];
-
-  console.log(`Downloading info for user ${item.user}...`);
-
-  const user = (
-    await getWebClient().users.info({
-      user: item.user,
-    })
-  ).user;
-
-  if (user) {
-    return (users[item.user] = user);
-  }
-
-  return null;
-}
-
-export async function downloadEmojiList(): Promise<Emojis> {
-  const response = await getWebClient().emoji.list();
-
-  if (response.ok) {
-    return response.emoji!;
-  } else {
-    return {};
-  }
-}
-
 export async function downloadChannels(
   options: ConversationsListArguments,
   users: Users
 ): Promise<Array<Channel>> {
   const channels = [];
+  const spinner = ora("Downloading channels").start();
 
   for await (const page of getWebClient().paginate(
     "conversations.list",
     options
   )) {
     if (isChannels(page)) {
-      console.log(
-        `Found ${page.channels?.length} channels (found so far: ${
-          channels.length + (page.channels?.length || 0)
-        })`
-      );
+      spinner.text = `Found ${page.channels?.length} channels (found so far: ${
+        channels.length + (page.channels?.length || 0)
+      })`;
 
       const pageChannels = (page.channels || []).filter((c) => !!c.id);
 
@@ -95,6 +53,8 @@ export async function downloadChannels(
       channels.push(...pageChannels);
     }
   }
+
+  spinner.succeed(`Found ${channels.length} channels`);
 
   return channels;
 }
@@ -213,8 +173,10 @@ export async function downloadExtras(
     }
 
     // Download users and avatars
-    if (message.user && users[message.user] === undefined) {
+    if (message.user && !usersRefetchedThisRun.includes(message.user)) {
       const usr = await downloadUser(message, users);
+      usersRefetchedThisRun.push(message.user);
+
       if (usr) {
         users[message.user] = usr;
       }

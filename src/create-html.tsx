@@ -560,7 +560,7 @@ async function createHtmlForChannel({
 }
 
 export async function createHtmlForChannels(channels: Array<Channel> = []) {
-  console.log(`Creating HTML files...`);
+  console.log(`\n Creating HTML files...`);
 
   const _channels = channels.length === 0 ? await getChannels() : channels;
   users = await getUsers();

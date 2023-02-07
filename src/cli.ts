@@ -16,14 +16,9 @@ import {
   DATE_FILE,
   EMOJIS_DATA_PATH,
 } from "./config.js";
-import {
-  authTest,
-  downloadChannels,
-  downloadEmojiList,
-  downloadExtras,
-} from "./download-messages.js";
-import { downloadMessages } from "./download-messages.js";
-import { downloadAvatars, downloadFilesForChannel } from "./download-files.js";
+import { authTest, downloadChannels, downloadExtras } from "./messages.js";
+import { downloadMessages } from "./messages.js";
+import { downloadFilesForChannel } from "./download-files.js";
 import {
   createHtmlForChannels,
   getChannelsToCreateFilesFor,
@@ -34,7 +29,8 @@ import { createSearch } from "./search.js";
 import { write, writeAndMerge } from "./data-write.js";
 import { messagesCache, getUsers } from "./data-load.js";
 import { getSlackArchiveData, setSlackArchiveData } from "./archive-data.js";
-import { downloadEmojis } from "./emoji.js";
+import { downloadEmojiList, downloadEmojis } from "./emoji.js";
+import { downloadAvatars } from "./users.js";
 
 const { prompt } = inquirer;
 
@@ -178,9 +174,12 @@ function getLastSuccessfulRun() {
 }
 
 async function getAuthTest() {
+  const spinner = ora("Testing authentication with Slack...").start();
   const result = await authTest();
 
   if (!result.ok) {
+    spinner.fail(`Authentication with Slack failed.`);
+
     console.log(
       `Authentication with Slack failed. The error was: ${result.error}`
     );
@@ -195,7 +194,7 @@ async function getAuthTest() {
     await deleteBackup();
     process.exit(-1);
   } else {
-    console.log(`Successfully authorized with Slack as ${result.user}\n`);
+    spinner.succeed(`Successfully authorized with Slack as ${result.user}\n`);
   }
 
   return result;
@@ -215,10 +214,8 @@ export async function main() {
   const users: Record<string, User> = await getUsers();
   const channelTypes = (await selectChannelTypes()).join(",");
 
-  console.log(`Testing auth...`);
   slackArchiveData.auth = await getAuthTest();
 
-  console.log(`Downloading channels...\n`);
   const channels = await downloadChannels({ types: channelTypes }, users);
   const selectedChannels = await selectChannels(channels);
   const newMessages: Record<string, number> = {};
@@ -263,6 +260,7 @@ export async function main() {
     const spinner = ora(
       `Saving message data for ${channel.name || channel.id} to disk`
     ).start();
+    spinner.render();
 
     result = uniqBy(result, "ts");
     result = result.sort((a, b) => {

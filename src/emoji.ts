@@ -6,6 +6,7 @@ import { createRequire } from "node:module";
 import { EMOJIS_DIR } from "./config.js";
 import { downloadURL } from "./download-files.js";
 import { ArchiveMessage, Emojis } from "./interfaces.js";
+import { getWebClient } from "./web-client.js";
 
 const require = createRequire(import.meta.url);
 const emojiData = require("emoji-datasource");
@@ -55,6 +56,16 @@ export function getEmojiUnicode(name: string) {
       return String.fromCodePoint(parseInt(code, 16));
     })
     .join("");
+}
+
+export async function downloadEmojiList(): Promise<Emojis> {
+  const response = await getWebClient().emoji.list();
+
+  if (response.ok) {
+    return response.emoji!;
+  } else {
+    return {};
+  }
 }
 
 export async function downloadEmoji(
