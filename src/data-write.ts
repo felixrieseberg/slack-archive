@@ -1,7 +1,5 @@
 import fs from "fs-extra";
-import { uniqBy } from "lodash-es";
-import { SLACK_ARCHIVE_DATA_PATH } from "./config.js";
-import { SlackArchiveData } from "./interfaces.js";
+import { differenceBy } from "lodash-es";
 
 import { retry } from "./retry.js";
 
@@ -19,10 +17,15 @@ export async function writeAndMerge(filePath: string, newData: any) {
       const oldData = fs.readJSONSync(filePath);
 
       if (Array.isArray(oldData)) {
-        dataToWrite = [...oldData, ...newData];
-
         if (newData && newData[0] && newData[0].id) {
-          dataToWrite = uniqBy(dataToWrite, (v: any) => v.id);
+          // Take the old data, exclude aything that is in the new data,
+          // and then add the new data
+          dataToWrite = [
+            ...differenceBy(oldData, newData, (v: any) => v.id),
+            ...newData,
+          ];
+        } else {
+          dataToWrite = [...oldData, ...newData];
         }
       } else if (typeof newData === "object") {
         dataToWrite = { ...oldData, ...newData };

@@ -17,7 +17,11 @@ export async function downloadUser(
   users: Users
 ): Promise<User | null> {
   if (!item.user) return null;
-  if (users[item.user]) return users[item.user];
+
+  // If we already have this user *and* downloaded them before,
+  // return cached version
+  if (users[item.user] && usersRefetchedThisRun.includes(item.user))
+    return users[item.user];
 
   const spinner = ora(`Downloading info for user ${item.user}...`).start();
   const user = (
@@ -27,7 +31,8 @@ export async function downloadUser(
   ).user;
 
   if (user) {
-    spinner.succeed(`Downloaded info for user ${item.user}`);
+    usersRefetchedThisRun.push(item.user);
+    spinner.succeed(`Downloaded info for user ${item.user} (${user.name})`);
     return (users[item.user] = user);
   }
 
@@ -71,4 +76,12 @@ export async function downloadAvatarForUser(user?: User | null) {
   } catch (error) {
     console.warn(`Failed to download avatar for user ${user.id!}`, error);
   }
+}
+
+export function getName(userId: string | undefined, users: Users) {
+  if (!userId) return "Unknown";
+  const user = users[userId];
+  if (!user) return userId;
+
+  return user.profile?.display_name || user.profile?.real_name || user.name;
 }

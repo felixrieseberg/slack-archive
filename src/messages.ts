@@ -4,12 +4,12 @@ import {
   ConversationsListResponse,
 } from "@slack/web-api";
 import { Channel } from "@slack/web-api/dist/response/ConversationsListResponse";
-import ora, { Ora } from "ora";
+import ora from "ora";
 
-import { ArchiveMessage, Emojis, Message, Users } from "./interfaces.js";
+import { ArchiveMessage, Message, Users } from "./interfaces.js";
 import { getMessages } from "./data-load.js";
 import { isThread } from "./threads.js";
-import { downloadUser, usersRefetchedThisRun } from "./users.js";
+import { downloadUser, getName } from "./users.js";
 import { getWebClient } from "./web-client.js";
 
 function isConversation(input: any): input is ConversationsHistoryResponse {
@@ -41,8 +41,8 @@ export async function downloadChannels(
       for (const channel of pageChannels) {
         if (channel.is_im) {
           const user = await downloadUser(channel, users);
-          const realUserName = user?.real_name ? ` (${user?.real_name})` : "";
-          channel.name = channel.name || `${user?.name}${realUserName}`;
+          channel.name =
+            channel.name || `${getName(user?.id, users)} (${user?.name})`;
         }
 
         if (channel.is_mpim) {
@@ -173,13 +173,8 @@ export async function downloadExtras(
     }
 
     // Download users and avatars
-    if (message.user && !usersRefetchedThisRun.includes(message.user)) {
-      const usr = await downloadUser(message, users);
-      usersRefetchedThisRun.push(message.user);
-
-      if (usr) {
-        users[message.user] = usr;
-      }
+    if (message.user) {
+      await downloadUser(message, users);
     }
   }
 

@@ -32,6 +32,7 @@ import { recordPage } from "./search.js";
 import { write } from "./data-write.js";
 import { getSlackArchiveData } from "./archive-data.js";
 import { getEmojiFilePath, getEmojiUnicode, isEmojiUnicode } from "./emoji.js";
+import { getName } from "./users.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const MESSAGE_CHUNK = 1000;
@@ -153,7 +154,7 @@ const Reaction: React.FunctionComponent<ReactionProps> = ({ reaction }) => {
 
   if (reaction.users) {
     for (const userId of reaction.users) {
-      reactors.push(users[userId]?.name);
+      reactors.push(getName(userId, users));
     }
   }
 
@@ -182,11 +183,9 @@ interface MessageProps {
 }
 const Message: React.FunctionComponent<MessageProps> = (props) => {
   const { message } = props;
-  const username = message.user
-    ? users[message.user]?.name
-    : message.user || "Unknown";
+  const username = getName(message.user, users);
   const slackCallbacks = {
-    user: ({ id }: { id: string }) => `@${users[id]?.name || id}`,
+    user: ({ id }: { id: string }) => `@${getName(id, users)}`,
   };
 
   return (
@@ -385,9 +384,7 @@ const Header: React.FunctionComponent<HeaderProps> = (props) => {
   let created;
 
   if (!channel.is_im && !channel.is_mpim) {
-    const creator = channel.creator
-      ? users[channel.creator]?.name || channel.creator
-      : "Unknown";
+    const creator = getName(channel.creator, users);
     const time = channel.created
       ? format(channel.created * 1000, "PPPP")
       : "Unknown";
