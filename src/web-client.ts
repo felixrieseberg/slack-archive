@@ -9,3 +9,7 @@ export function getWebClient() {
   const { token } = config;
   return (_webClient = new WebClient(token));
 }
+
+export async function authTest() {
+  return getWebClient().auth.test();
+}

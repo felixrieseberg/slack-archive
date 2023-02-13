@@ -16,49 +16,6 @@ function isConversation(input: any): input is ConversationsHistoryResponse {
   return !!input.messages;
 }
 
-function isChannels(input: any): input is ConversationsListResponse {
-  return !!input.channels;
-}
-
-export async function downloadChannels(
-  options: ConversationsListArguments,
-  users: Users
-): Promise<Array<Channel>> {
-  const channels = [];
-  const spinner = ora("Downloading channels").start();
-
-  for await (const page of getWebClient().paginate(
-    "conversations.list",
-    options
-  )) {
-    if (isChannels(page)) {
-      spinner.text = `Found ${page.channels?.length} channels (found so far: ${
-        channels.length + (page.channels?.length || 0)
-      })`;
-
-      const pageChannels = (page.channels || []).filter((c) => !!c.id);
-
-      for (const channel of pageChannels) {
-        if (channel.is_im) {
-          const user = await downloadUser(channel, users);
-          channel.name =
-            channel.name || `${getName(user?.id, users)} (${user?.name})`;
-        }
-
-        if (channel.is_mpim) {
-          channel.name = channel.purpose?.value;
-        }
-      }
-
-      channels.push(...pageChannels);
-    }
-  }
-
-  spinner.succeed(`Found ${channels.length} channels`);
-
-  return channels;
-}
-
 interface DownloadMessagesResult {
   messages: Array<ArchiveMessage>;
   new: number;
@@ -183,8 +140,4 @@ export async function downloadExtras(
       channel.name || channel.id
     }.`
   );
-}
-
-export async function authTest() {
-  return getWebClient().auth.test();
 }

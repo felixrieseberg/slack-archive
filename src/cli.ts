@@ -15,8 +15,9 @@ import {
   AUTOMATIC_MODE,
   DATE_FILE,
   EMOJIS_DATA_PATH,
+  NO_SLACK_CONNECT,
 } from "./config.js";
-import { authTest, downloadChannels, downloadExtras } from "./messages.js";
+import { downloadExtras } from "./messages.js";
 import { downloadMessages } from "./messages.js";
 import { downloadFilesForChannel } from "./download-files.js";
 import {
@@ -31,6 +32,8 @@ import { messagesCache, getUsers } from "./data-load.js";
 import { getSlackArchiveData, setSlackArchiveData } from "./archive-data.js";
 import { downloadEmojiList, downloadEmojis } from "./emoji.js";
 import { downloadAvatars } from "./users.js";
+import { downloadChannels } from "./channels.js";
+import { authTest } from "./web-client.js";
 
 const { prompt } = inquirer;
 
@@ -41,7 +44,8 @@ async function selectMergeFiles(): Promise<boolean> {
     return false;
   }
 
-  if (AUTOMATIC_MODE) {
+  // We didn't download any data. Merge.
+  if (AUTOMATIC_MODE || NO_SLACK_CONNECT) {
     return defaultResponse;
   }
 
@@ -69,7 +73,7 @@ async function selectChannels(
     value: channel,
   }));
 
-  if (AUTOMATIC_MODE) {
+  if (AUTOMATIC_MODE || NO_SLACK_CONNECT) {
     return channels;
   }
 
@@ -106,7 +110,7 @@ async function selectChannelTypes(): Promise<Array<string>> {
     },
   ];
 
-  if (AUTOMATIC_MODE) {
+  if (AUTOMATIC_MODE || NO_SLACK_CONNECT) {
     return ["public_channel", "private_channel", "mpim", "im"];
   }
 
@@ -124,6 +128,10 @@ async function selectChannelTypes(): Promise<Array<string>> {
 }
 
 async function getToken() {
+  if (NO_SLACK_CONNECT) {
+    return;
+  }
+
   if (config.token) {
     console.log(`Using token ${config.token}`);
     return;
@@ -174,6 +182,10 @@ function getLastSuccessfulRun() {
 }
 
 async function getAuthTest() {
+  if (NO_SLACK_CONNECT) {
+    return;
+  }
+
   const spinner = ora("Testing authentication with Slack...").start();
   const result = await authTest();
 
@@ -207,6 +219,10 @@ export async function main() {
     console.log(`Running in fully automatic mode without prompts`);
   }
 
+  if (NO_SLACK_CONNECT) {
+    console.log(`Not connecting to Slack and skipping all Slack API calls`);
+  }
+
   await getToken();
   await createBackup();
 
@@ -224,71 +240,14 @@ export async function main() {
   // We don't actually download the images here, we'll
   // do that as needed
   const emojis = await downloadEmojiList();
-  await write(EMOJIS_DATA_PATH, JSON.stringify(emojis));
+  await writeAndMerge(EMOJIS_DATA_PATH, emojis);
 
   // Do we want to merge data?
   await selectMergeFiles();
   await writeAndMerge(CHANNELS_DATA_PATH, selectedChannels);
 
-  for (const [i, channel] of selectedChannels.entries()) {
-    if (!channel.id) {
-      console.warn(`Selected channel does not have an id`, channel);
-      continue;
-    }
-
-    // Do we already have everything?
-    slackArchiveData.channels[channel.id] =
-      slackArchiveData.channels[channel.id] || {};
-    if (slackArchiveData.channels[channel.id].fullyDownloaded) {
-      continue;
-    }
-
-    // Download messages & users
-    let downloadData = await downloadMessages(
-      channel,
-      i,
-      selectedChannels.length
-    );
-    let result = downloadData.messages;
-    newMessages[channel.id] = downloadData.new;
-
-    await downloadExtras(channel, result, users);
-    await downloadEmojis(result, emojis);
-    await downloadAvatars();
-
-    // Sort messages
-    const spinner = ora(
-      `Saving message data for ${channel.name || channel.id} to disk`
-    ).start();
-    spinner.render();
-
-    result = uniqBy(result, "ts");
-    result = result.sort((a, b) => {
-      return parseFloat(b.ts || "0") - parseFloat(a.ts || "0");
-    });
-
-    await writeAndMerge(USERS_DATA_PATH, users);
-    fs.outputFileSync(
-      getChannelDataFilePath(channel.id),
-      JSON.stringify(result, undefined, 2)
-    );
-
-    // Download files. This needs to run after the messages are saved to disk
-    // since it uses the message data to find which files to download.
-    await downloadFilesForChannel(channel.id!, spinner);
-
-    // Update the data load cache
-    messagesCache[channel.id!] = result;
-
-    // Update the data
-    const { is_archived, is_im, is_user_deleted } = channel;
-    if (is_archived || (is_im && is_user_deleted)) {
-      slackArchiveData.channels[channel.id].fullyDownloaded = true;
-    }
-    slackArchiveData.channels[channel.id].messages = result.length;
-
-    spinner.succeed(`Saved message data for ${channel.name || channel.id}`);
-  }
+  // Download messages and extras for each channel
+  await downloadEachChannel();
 
   // Save data
   await setSlackArchiveData(slackArchiveData);
@@ -304,12 +263,76 @@ export async function main() {
   // Create search file
   await createSearch();
 
+  // Cleanup and finalize
   await deleteBackup();
   await deleteOlderBackups();
-
   await writeLastSuccessfulArchive();
 
   console.log(`All done.`);
+
+  async function downloadEachChannel() {
+    if (NO_SLACK_CONNECT) return;
+
+    for (const [i, channel] of selectedChannels.entries()) {
+      if (!channel.id) {
+        console.warn(`Selected channel does not have an id`, channel);
+        continue;
+      }
+
+      // Do we already have everything?
+      slackArchiveData.channels[channel.id] =
+        slackArchiveData.channels[channel.id] || {};
+      if (slackArchiveData.channels[channel.id].fullyDownloaded) {
+        continue;
+      }
+
+      // Download messages & users
+      let downloadData = await downloadMessages(
+        channel,
+        i,
+        selectedChannels.length
+      );
+      let result = downloadData.messages;
+      newMessages[channel.id] = downloadData.new;
+
+      await downloadExtras(channel, result, users);
+      await downloadEmojis(result, emojis);
+      await downloadAvatars();
+
+      // Sort messages
+      const spinner = ora(
+        `Saving message data for ${channel.name || channel.id} to disk`
+      ).start();
+      spinner.render();
+
+      result = uniqBy(result, "ts");
+      result = result.sort((a, b) => {
+        return parseFloat(b.ts || "0") - parseFloat(a.ts || "0");
+      });
+
+      await writeAndMerge(USERS_DATA_PATH, users);
+      fs.outputFileSync(
+        getChannelDataFilePath(channel.id),
+        JSON.stringify(result, undefined, 2)
+      );
+
+      // Download files. This needs to run after the messages are saved to disk
+      // since it uses the message data to find which files to download.
+      await downloadFilesForChannel(channel.id!, spinner);
+
+      // Update the data load cache
+      messagesCache[channel.id!] = result;
+
+      // Update the data
+      const { is_archived, is_im, is_user_deleted } = channel;
+      if (is_archived || (is_im && is_user_deleted)) {
+        slackArchiveData.channels[channel.id].fullyDownloaded = true;
+      }
+      slackArchiveData.channels[channel.id].messages = result.length;
+
+      spinner.succeed(`Saved message data for ${channel.name || channel.id}`);
+    }
+  }
 }
 
 main();

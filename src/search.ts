@@ -1,6 +1,6 @@
 import fs from "fs-extra";
 import ora, { Ora } from "ora";
-import { getChannelName } from "./channel-name.js";
+import { getChannelName } from "./channels.js";
 
 import {
   NO_SEARCH,

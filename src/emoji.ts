@@ -3,7 +3,7 @@ import ora from "ora";
 import fs from "fs";
 import { createRequire } from "node:module";
 
-import { EMOJIS_DIR } from "./config.js";
+import { EMOJIS_DIR, NO_SLACK_CONNECT } from "./config.js";
 import { downloadURL } from "./download-files.js";
 import { ArchiveMessage, Emojis } from "./interfaces.js";
 import { getWebClient } from "./web-client.js";
@@ -59,6 +59,10 @@ export function getEmojiUnicode(name: string) {
 }
 
 export async function downloadEmojiList(): Promise<Emojis> {
+  if (NO_SLACK_CONNECT) {
+    return {};
+  }
+
   const response = await getWebClient().emoji.list();
 
   if (response.ok) {

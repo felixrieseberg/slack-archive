@@ -24,6 +24,7 @@ export const AUTOMATIC_MODE = findCliParameter("--automatic");
 export const NO_BACKUP = findCliParameter("--no-backup");
 export const NO_SEARCH = findCliParameter("--no-search");
 export const NO_FILE_DOWNLOAD = findCliParameter("--no-file-download");
+export const NO_SLACK_CONNECT = findCliParameter("--no-slack-connect");
 export const FORCE_HTML_GENERATION = findCliParameter(
   "--force-html-generation"
 );
