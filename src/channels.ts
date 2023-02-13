@@ -1,4 +1,7 @@
-import { ConversationsListArguments, ConversationsListResponse } from "@slack/web-api";
+import {
+  ConversationsListArguments,
+  ConversationsListResponse,
+} from "@slack/web-api";
 import ora from "ora";
 import { NO_SLACK_CONNECT } from "./config.js";
 
@@ -17,15 +20,15 @@ export function isPublicChannel(channel: Channel) {
 }
 
 export function isPrivateChannel(channel: Channel) {
-  return channel.is_private && !channel.is_im && !channel.is_mpim
+  return channel.is_private && !channel.is_im && !channel.is_mpim;
 }
 
 export function isDmChannel(channel: Channel, users: Users) {
-  return channel.is_im && channel.user && !users[channel.user]?.is_bot
+  return channel.is_im && channel.user && !users[channel.user]?.is_bot;
 }
 
 export function isBotChannel(channel: Channel, users: Users) {
-  return channel.user && users[channel.user]?.is_bot
+  return channel.user && users[channel.user]?.is_bot;
 }
 
 function isChannels(input: any): input is ConversationsListResponse {
@@ -37,7 +40,7 @@ export async function downloadChannels(
   users: Users
 ): Promise<Array<Channel>> {
   const channels: Array<Channel> = [];
-  
+
   if (NO_SLACK_CONNECT) {
     return channels;
   }

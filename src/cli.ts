@@ -28,7 +28,7 @@ import { createBackup, deleteBackup, deleteOlderBackups } from "./backup.js";
 import { isValid, parseISO } from "date-fns";
 import { createSearch } from "./search.js";
 import { write, writeAndMerge } from "./data-write.js";
-import { messagesCache, getUsers } from "./data-load.js";
+import { messagesCache, getUsers, getChannels } from "./data-load.js";
 import { getSlackArchiveData, setSlackArchiveData } from "./archive-data.js";
 import { downloadEmojiList, downloadEmojis } from "./emoji.js";
 import { downloadAvatars } from "./users.js";

@@ -171,7 +171,6 @@ audio, video {
 
 .header a:active, .header a.current {
   color: #000;
-  font-weight: 800;
 }
 
 .header .created {
@@ -179,8 +178,7 @@ audio, video {
 }
 
 .jumper {
-  overflow: auto;
-  max-width: calc(100vw - 20px);
+  display: inline-block;
 }
 
 .jumper a {

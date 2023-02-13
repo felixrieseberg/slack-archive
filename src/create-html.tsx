@@ -14,6 +14,7 @@ import { getChannels, getMessages, getUsers } from "./data-load.js";
 import {
   ArchiveMessage,
   Channel,
+  ChunksInfo,
   Message,
   Reaction,
   SlackArchiveData,
@@ -33,6 +34,12 @@ import { write } from "./data-write.js";
 import { getSlackArchiveData } from "./archive-data.js";
 import { getEmojiFilePath, getEmojiUnicode, isEmojiUnicode } from "./emoji.js";
 import { getName } from "./users.js";
+import {
+  isBotChannel,
+  isDmChannel,
+  isPrivateChannel,
+  isPublicChannel,
+} from "./channels.js";
 
 const _dirname = dirname(fileURLToPath(import.meta.url));
 const MESSAGE_CHUNK = 1000;
@@ -47,15 +54,12 @@ let me: User | null;
 // Little hack to switch between ./index.html and ./html/...
 let base = "";
 
-interface TimestampProps {
-  message: Message;
-}
-const Timestamp: React.FunctionComponent<TimestampProps> = (props) => {
-  const jsTs = slackTimestampToJavaScriptTimestamp(props.message.ts);
-  const ts = format(jsTs, "PPPPpppp");
+function formatTimestamp(message: Message, dateFormat = "PPPPpppp") {
+  const jsTs = slackTimestampToJavaScriptTimestamp(message.ts);
+  const ts = format(jsTs, dateFormat);
 
-  return <span className="c-timestamp__label">{ts}</span>;
-};
+  return ts;
+}
 
 interface FilesProps {
   message: Message;
@@ -196,7 +200,7 @@ const Message: React.FunctionComponent<MessageProps> = (props) => {
       <div className="">
         <span className="sender">{username}</span>
         <span className="timestamp">
-          <Timestamp message={message} />
+          <span className="c-timestamp__label">{formatTimestamp(message)}</span>
         </span>
         <br />
         <div
@@ -218,10 +222,10 @@ interface MessagesPageProps {
   messages: Array<ArchiveMessage>;
   channel: Channel;
   index: number;
-  total: number;
+  chunksInfo: ChunksInfo;
 }
 const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
-  const { channel, index, total } = props;
+  const { channel, index, chunksInfo } = props;
   const messagesJs = fs.readFileSync(MESSAGES_JS_PATH, "utf8");
 
   // Newest message is first
@@ -238,7 +242,7 @@ const MessagesPage: React.FunctionComponent<MessagesPageProps> = (props) => {
   return (
     <HtmlPage>
       <div style={{ paddingLeft: 10 }}>
-        <Header index={index} total={total} channel={channel} />
+        <Header index={index} chunksInfo={chunksInfo} channel={channel} />
         <div className="messages-list">{messages}</div>
         <script dangerouslySetInnerHTML={{ __html: messagesJs }} />
       </div>
@@ -292,19 +296,25 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
   const sortedChannels = sortBy(channels, "name");
 
   const publicChannels = sortedChannels
-    .filter(
-      (channel) => !channel.is_private && !channel.is_mpim && !channel.is_im
-    )
+    .filter((channel) => isPublicChannel(channel) && !channel.is_archived)
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+
+  const publicArchivedChannels = sortedChannels
+    .filter((channel) => isPublicChannel(channel) && channel.is_archived)
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   const privateChannels = sortedChannels
-    .filter(
-      (channel) => channel.is_private && !channel.is_im && !channel.is_mpim
-    )
+    .filter((channel) => isPrivateChannel(channel) && !channel.is_archived)
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+
+  const privateArchivedChannels = sortedChannels
+    .filter((channel) => isPrivateChannel(channel) && channel.is_archived)
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   const dmChannels = sortedChannels
-    .filter((channel) => channel.is_im)
+    .filter(
+      (channel) => isDmChannel(channel, users) && !users[channel.user!].deleted
+    )
     .sort((a, b) => {
       // Self first
       if (me && a.user && a.user === me.id) {
@@ -312,16 +322,30 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
       }
 
       // Then alphabetically
+      return (a.name || "Unknown").localeCompare(b.name || "Unknown");
+    })
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+
+  const dmDeletedChannels = sortedChannels
+    .filter(
+      (channel) => isDmChannel(channel, users) && users[channel.user!].deleted
+    )
+    .sort((a, b) => (a.name || "Unknown").localeCompare(b.name || "Unknown"))
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+
+  const groupChannels = sortedChannels
+    .filter((channel) => channel.is_mpim)
+    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
+
+  const botChannels = sortedChannels
+    .filter((channel) => isBotChannel(channel, users))
+    .sort((a, b) => {
       if (a.name && b.name) {
         return a.name!.localeCompare(b.name!);
       }
 
       return 1;
     })
-    .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
-
-  const groupChannels = sortedChannels
-    .filter((channel) => channel.is_mpim)
     .map((channel) => <ChannelLink key={channel.id} channel={channel} />);
 
   return (
@@ -336,6 +360,14 @@ const IndexPage: React.FunctionComponent<IndexPageProps> = (props) => {
           <ul>{dmChannels}</ul>
           <p className="section">Group DMs</p>
           <ul>{groupChannels}</ul>
+          <p className="section">Bots</p>
+          <ul>{botChannels}</ul>
+          <p className="section">Archived Public Channels</p>
+          <ul>{publicArchivedChannels}</ul>
+          <p className="section">Archived Private Channels</p>
+          <ul>{privateArchivedChannels}</ul>
+          <p className="section">DMs (Deleted Users)</p>
+          <ul>{dmDeletedChannels}</ul>
         </div>
         <div id="messages">
           <iframe name="iframe" src={`html/${channels[0].id!}-0.html`} />
@@ -376,11 +408,11 @@ const HtmlPage: React.FunctionComponent = (props) => {
 
 interface HeaderProps {
   index: number;
-  total: number;
+  chunksInfo: ChunksInfo;
   channel: Channel;
 }
 const Header: React.FunctionComponent<HeaderProps> = (props) => {
-  const { channel, index, total } = props;
+  const { channel, index, chunksInfo } = props;
   let created;
 
   if (!channel.is_im && !channel.is_mpim) {
@@ -402,25 +434,30 @@ const Header: React.FunctionComponent<HeaderProps> = (props) => {
       <h1>{channel.name || channel.id}</h1>
       {created}
       <p className="topic">{channel.topic?.value}</p>
-      <Pagination channelId={channel.id!} index={index} total={total} />
+      <Pagination
+        channelId={channel.id!}
+        index={index}
+        chunksInfo={chunksInfo}
+      />
     </div>
   );
 };
 
 interface PaginationProps {
   index: number;
-  total: number;
+  chunksInfo: ChunksInfo;
   channelId: string;
 }
 const Pagination: React.FunctionComponent<PaginationProps> = (props) => {
-  const { index, total, channelId } = props;
+  const { index, channelId, chunksInfo } = props;
+  const length = chunksInfo.length;
 
-  if (total === 1) {
+  if (length === 1) {
     return null;
   }
 
   const older =
-    index + 1 < total ? (
+    index + 1 < length ? (
       <span>
         <a href={`${channelId}-${index + 1}.html`}>Older Messages</a>
       </span>
@@ -431,30 +468,44 @@ const Pagination: React.FunctionComponent<PaginationProps> = (props) => {
         <a href={`${channelId}-${index - 1}.html`}>Newer Messages </a>
       </span>
     ) : null;
-  const sep = older && newer ? " | " : null;
+  const sep1 = older && newer ? " | " : null;
+  const sep2 = older || newer ? " | " : null;
 
-  let jump = [];
-
-  for (let ji = 0; ji < total; ji++) {
-    const className = ji === index ? "current" : "";
-    jump.push(
-      <a className={className} key={ji} href={`${channelId}-${ji}.html`}>
-        {ji}
-      </a>
+  const options: Array<JSX.Element> = [];
+  for (const [i, chunk] of chunksInfo.entries()) {
+    const text = `${i} - ${chunk.newest} to ${chunk.oldest}`;
+    const value = `${channelId}-${i}.html`;
+    const selected = i === index;
+    options.push(
+      <option selected={selected} key={value} value={value}>
+        {text}
+      </option>
     );
   }
 
   return (
     <div className="pagination">
       {newer}
-      {sep}
+      {sep1}
       {older}
-      <div className="jumper">{jump}</div>
+      {sep2}
+      <div className="jumper">
+        <select id="jumper">{options}</select>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              document.getElementById("jumper").onchange = function () {
+                window.location.href = this.value;
+              }
+            `,
+          }}
+        />
+      </div>
     </div>
   );
 };
 
-async function renderIndexPage({ users }: { users: Users }) {
+async function renderIndexPage() {
   base = "html/";
   const channels = await getChannels();
   const page = <IndexPage channels={channels} />;
@@ -462,26 +513,28 @@ async function renderIndexPage({ users }: { users: Users }) {
   return renderAndWrite(page, INDEX_PATH);
 }
 
-function renderMessagesPage(
-  channel: Channel,
-  messages: Array<ArchiveMessage>,
-  index: number,
-  total: number,
-  spinner: Ora
-) {
+interface RenderMessagesPageOptions {
+  channel: Channel;
+  messages: Array<ArchiveMessage>;
+  chunkIndex: number;
+  chunksInfo: ChunksInfo;
+}
+
+function renderMessagesPage(options: RenderMessagesPageOptions, spinner: Ora) {
+  const { channel, messages, chunkIndex: index, chunksInfo } = options;
   const page = (
     <MessagesPage
       channel={channel}
       messages={messages}
       index={index}
-      total={total}
+      chunksInfo={chunksInfo}
     />
   );
 
   const filePath = getHTMLFilePath(channel.id!, index);
-  spinner.text = `${channel.name || channel.id}: Writing ${
-    index + 1
-  }/${total} ${filePath}`;
+  spinner.text = `${channel.name || channel.id}: Writing ${index + 1}/${
+    chunksInfo.length
+  } ${filePath}`;
   spinner.render();
 
   // Update the search index. In messages, the youngest message is first.
@@ -520,6 +573,7 @@ export async function getChannelsToCreateFilesFor(
 
       // Did we never create a file?
       if (!fs.existsSync(getHTMLFilePath(channel.id!, 0))) {
+        console.log(channel);
         result.push(channel);
       }
     }
@@ -543,12 +597,38 @@ async function createHtmlForChannel({
     `Rendering HTML for ${i + 1}/${total} ${channel.name || channel.id}`
   ).start();
 
+  // Calculate info about all chunks
+  const chunksInfo: ChunksInfo = [];
+  for (const iChunk of chunks) {
+    chunksInfo.push({
+      oldest: formatTimestamp(iChunk[iChunk.length - 1], "Pp"),
+      newest: formatTimestamp(iChunk[0], "Pp"),
+      count: iChunk.length,
+    });
+  }
+
   if (chunks.length === 0) {
-    await renderMessagesPage(channel, [], 0, chunks.length, spinner);
+    await renderMessagesPage(
+      {
+        channel,
+        messages: [],
+        chunkIndex: 0,
+        chunksInfo: chunksInfo,
+      },
+      spinner
+    );
   }
 
   for (const [chunkI, chunk] of chunks.entries()) {
-    await renderMessagesPage(channel, chunk, chunkI, chunks.length, spinner);
+    await renderMessagesPage(
+      {
+        channel,
+        messages: chunk,
+        chunkIndex: chunkI,
+        chunksInfo,
+      },
+      spinner
+    );
   }
 
   spinner.succeed(
@@ -557,25 +637,24 @@ async function createHtmlForChannel({
 }
 
 export async function createHtmlForChannels(channels: Array<Channel> = []) {
-  console.log(`\n Creating HTML files...`);
+  console.log(`\n Creating HTML files for ${channels.length} channels...`);
 
-  const _channels = channels.length === 0 ? await getChannels() : channels;
   users = await getUsers();
   slackArchiveData = await getSlackArchiveData();
   me = slackArchiveData.auth?.user_id
     ? users[slackArchiveData.auth?.user_id]
     : null;
 
-  for (const [i, channel] of _channels.entries()) {
+  for (const [i, channel] of channels.entries()) {
     if (!channel.id) {
       console.warn(`Can't create HTML for channel: No id found`, channel);
       continue;
     }
 
-    await createHtmlForChannel({ channel, i, total: _channels.length });
+    await createHtmlForChannel({ channel, i, total: channels.length });
   }
 
-  await renderIndexPage({ users });
+  await renderIndexPage();
 
   // Copy in fonts & css
   fs.copySync(path.join(_dirname, "../static"), path.join(OUT_DIR, "html/"));

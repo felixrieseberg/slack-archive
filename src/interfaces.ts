@@ -48,3 +48,11 @@ export interface SlackArchiveData {
   channels: Record<string, SlackArchiveChannelData>;
   auth?: AuthTestResponse;
 }
+
+export interface ChunkInfo {
+  oldest?: string;
+  newest?: string;
+  count: number;
+}
+
+export type ChunksInfo = Array<ChunkInfo>;
