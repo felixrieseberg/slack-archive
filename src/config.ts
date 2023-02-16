@@ -20,7 +20,20 @@ function findCliParameter(param: string) {
   return false;
 }
 
+function getCliParameter(param: string) {
+  const args = process.argv;
+
+  for (const [i, arg] of args.entries()) {
+    if (arg === param) {
+      return args[i + 1];
+    }
+  }
+
+  return null;
+}
+
 export const AUTOMATIC_MODE = findCliParameter("--automatic");
+export const CHANNEL_TYPES = getCliParameter("--channel-types");
 export const NO_BACKUP = findCliParameter("--no-backup");
 export const NO_SEARCH = findCliParameter("--no-search");
 export const NO_FILE_DOWNLOAD = findCliParameter("--no-file-download");

@@ -13,6 +13,7 @@ import {
   config,
   TOKEN_FILE,
   AUTOMATIC_MODE,
+  CHANNEL_TYPES,
   DATE_FILE,
   EMOJIS_DATA_PATH,
   NO_SLACK_CONNECT,
@@ -109,6 +110,10 @@ async function selectChannelTypes(): Promise<Array<string>> {
       value: "im",
     },
   ];
+
+  if (CHANNEL_TYPES) {
+    return CHANNEL_TYPES.split(',');
+  }
 
   if (AUTOMATIC_MODE || NO_SLACK_CONNECT) {
     return ["public_channel", "private_channel", "mpim", "im"];
