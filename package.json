@@ -1,6 +1,6 @@
 {
   "name": "slack-archive",
-  "version": "1.5.1",
+  "version": "1.6.0",
   "description": "Create static HTML archives for your Slack workspaces",
   "scripts": {
     "prettier": "npx prettier --write src/*",
