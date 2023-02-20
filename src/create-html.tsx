@@ -573,7 +573,6 @@ export async function getChannelsToCreateFilesFor(
 
       // Did we never create a file?
       if (!fs.existsSync(getHTMLFilePath(channel.id!, 0))) {
-        console.log(channel);
         result.push(channel);
       }
     }
