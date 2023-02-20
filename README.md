@@ -28,9 +28,11 @@ npx slack-archive
 
 ```
 --automatic:                Don't prompt and automatically fetch all messages from all channels.
+--channel-types             Comma-separated list of channel types to fetch messages from.
+                            (public_channel, private_channel, mpim, im)
 --no-backup:                Don't create backups. Not recommended.
 --no-search:                Don't create a search file, saving disk space.
---no-file-download:          Don't download files.
+--no-file-download:         Don't download files.
 --no-slack-connect:         Don't connect to Slack, just generate HTML from local data.
 --force-html-generation:    Force regeneration of HTML files. Useful after slack-archive upgrades.
 ```
