@@ -30,6 +30,7 @@ npx slack-archive
 --automatic:                Don't prompt and automatically fetch all messages from all channels.
 --channel-types             Comma-separated list of channel types to fetch messages from.
                             (public_channel, private_channel, mpim, im)
+--exclude-channels          Comma-separated list of channels to exclude, in automatic mode
 --no-backup:                Don't create backups. Not recommended.
 --no-search:                Don't create a search file, saving disk space.
 --no-file-download:         Don't download files.
@@ -107,4 +108,4 @@ your values.
 https://{your-team-name}.slack.com/api/oauth.access?client_id={your-client-id}&client_secret={your-client-secret}&code={your-code}"
 ```
 
-Your browser should now be returning some JSON including a token. Make a note of it - that's what we'll use. Paste it in the command line, OR create a file called `.TOKEN` in the slack-archive directory and paste it in there.
+Your browser should now be returning some JSON including a token. Make a note of it - that's what we'll use. Paste it in the command line, OR create a file called `.TOKEN` in the slack-archive directory (created when the command is first run) and paste it in there.

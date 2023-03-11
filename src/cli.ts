@@ -17,6 +17,7 @@ import {
   DATE_FILE,
   EMOJIS_DATA_PATH,
   NO_SLACK_CONNECT,
+  EXCLUDE_CHANNELS,
 } from "./config.js";
 import { downloadExtras } from "./messages.js";
 import { downloadMessages } from "./messages.js";
@@ -75,6 +76,10 @@ async function selectChannels(
   }));
 
   if (AUTOMATIC_MODE || NO_SLACK_CONNECT) {
+    if (EXCLUDE_CHANNELS) {
+      const excludeChannels = EXCLUDE_CHANNELS.split(',');
+      return channels.filter((channel) => !excludeChannels.includes(channel.name || ''));
+    }
     return channels;
   }
 
