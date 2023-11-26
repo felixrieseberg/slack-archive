@@ -38,6 +38,7 @@
     "ora": "^6.1.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "rimraf": "^5.0.5",
     "slack-markdown": "^0.2.0",
     "trash": "^8.1.0"
   },
