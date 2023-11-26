@@ -2,6 +2,8 @@ import fs from "fs-extra";
 import inquirer from "inquirer";
 import path from "path";
 import trash from "trash";
+import { rimraf } from "rimraf";
+
 import { AUTOMATIC_MODE, DATA_DIR, NO_BACKUP, OUT_DIR } from "./config.js";
 
 const { prompt } = inquirer;
@@ -36,9 +38,22 @@ export async function deleteBackup() {
   );
 
   try {
+    // NB: trash doesn't work on many Linux distros
     await trash(backupDir);
+    return;
   } catch (error) {
-    console.log(`Moving backup to trash failed. Aborting here.`);
+    console.log('Moving backup to trash failed.');
+  }
+
+  if (!process.env['TRASH_HARDER']) {
+    console.log(`Set TRASH_HARDER=1 to delete files permanently.`);
+    return;
+  }
+
+  try {
+    await rimraf(backupDir);
+  } catch (error) {
+    console.log(`Deleting backup permanently failed. Aborting here.`);
   }
 }
 
