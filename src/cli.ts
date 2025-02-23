@@ -13,6 +13,7 @@ import {
   config,
   TOKEN_FILE,
   AUTOMATIC_MODE,
+  USE_PREVIOUS_CHANNEL_CONFIG,
   CHANNEL_TYPES,
   DATE_FILE,
   EMOJIS_DATA_PATH,
@@ -35,6 +36,7 @@ import { downloadEmojiList, downloadEmojis } from "./emoji.js";
 import { downloadAvatars } from "./users.js";
 import { downloadChannels } from "./channels.js";
 import { authTest } from "./web-client.js";
+import { SlackArchiveChannelData } from "./interfaces.js";
 
 const { prompt } = inquirer;
 
@@ -67,8 +69,46 @@ async function selectMergeFiles(): Promise<boolean> {
 }
 
 async function selectChannels(
-  channels: Array<Channel>
+  channels: Array<Channel>,
+  previouslyDownloadedChannels: Record<string, SlackArchiveChannelData>
 ): Promise<Array<Channel>> {
+  if (USE_PREVIOUS_CHANNEL_CONFIG) {
+    const selectedChannels: Array<Channel> = channels.filter(
+      (channel) => channel.id && channel.id in previouslyDownloadedChannels
+    );
+    const selectedChannelNames = selectedChannels.map(
+      (channel) => channel.name || channel.id || "Unknown"
+    );
+    console.log(
+      `Downloading channels selected previously: ${selectedChannelNames}.`
+    );
+
+    const previousChannelIds = Object.keys(previouslyDownloadedChannels);
+    if (previousChannelIds.length != selectedChannels.length) {
+      console.warn(
+        "WARNING: Did not find all previously selected channel IDs."
+      );
+      console.log(
+        `Expected to find ${previousChannelIds.length} channels, but only ${selectedChannels.length} matched.`
+      );
+      // Consider Looking up the user-facing names of the missing channels in the saved data.
+      const availableChannelIds = new Set<string>(
+        channels.map((channel) => channel.id || "")
+      );
+      const missingChannelIds = previousChannelIds.filter(
+        (cId) => !availableChannelIds.has(cId)
+      );
+      //console.log(availableChannelIds);
+      console.log(`Missing channel ids: ${missingChannelIds}`);
+    } else {
+      console.log(
+        `Matched all ${previousChannelIds.length} previously selected channels out of ${channels.length} total channels available.`
+      );
+    }
+
+    return selectedChannels;
+  }
+
   const choices = channels.map((channel) => ({
     name: channel.name || channel.id || "Unknown",
     value: channel,
@@ -112,10 +152,10 @@ async function selectChannelTypes(): Promise<Array<string>> {
   ];
 
   if (CHANNEL_TYPES) {
-    return CHANNEL_TYPES.split(',');
+    return CHANNEL_TYPES.split(",");
   }
 
-  if (AUTOMATIC_MODE || NO_SLACK_CONNECT) {
+  if (AUTOMATIC_MODE || USE_PREVIOUS_CHANNEL_CONFIG || NO_SLACK_CONNECT) {
     return ["public_channel", "private_channel", "mpim", "im"];
   }
 
@@ -238,7 +278,10 @@ export async function main() {
   slackArchiveData.auth = await getAuthTest();
 
   const channels = await downloadChannels({ types: channelTypes }, users);
-  const selectedChannels = await selectChannels(channels);
+  const selectedChannels = await selectChannels(
+    channels,
+    slackArchiveData.channels
+  );
   const newMessages: Record<string, number> = {};
 
   // Emoji

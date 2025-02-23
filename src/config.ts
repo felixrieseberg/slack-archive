@@ -33,6 +33,9 @@ function getCliParameter(param: string) {
 }
 
 export const AUTOMATIC_MODE = findCliParameter("--automatic");
+export const USE_PREVIOUS_CHANNEL_CONFIG = findCliParameter(
+  "--use-previous-channel-config"
+);
 export const CHANNEL_TYPES = getCliParameter("--channel-types");
 export const NO_BACKUP = findCliParameter("--no-backup");
 export const NO_SEARCH = findCliParameter("--no-search");
