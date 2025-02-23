@@ -24,11 +24,11 @@ export async function downloadUser(
     return users[item.user];
 
   const spinner = ora(`Downloading info for user ${item.user}...`).start();
-  const user = (
-    await getWebClient().users.info({
-      user: item.user,
-    })
-  ).user;
+  const user = (item.user === 'U00') ? {} as User : (
+      await getWebClient().users.info({
+        user: item.user,
+      })
+    ).user;
 
   if (user) {
     usersRefetchedThisRun.push(item.user);
